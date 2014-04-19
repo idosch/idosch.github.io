@@ -346,7 +346,7 @@ This is very similar to Cusco, the difference being that the developers "improve
 ```
 43d0:   0000 0000 0000 0000 0000 a845 0100 a845   ...........E...E
 43e0:   0300 1c46 0000 0a00 0000 7845 6964 6f73   ...F......xEidos
-43f0:   6368 3132 3334 0000 0000 0000 00a6 3c44   ch1234........<D
+43f0:   6368 3132 3334 0000 0000 0000 00a6 3c44   ch1234........>D
 ```
 
 Visible are the password, the stack canary at `0x43fd` and the saved PC (`0x443c`). Since the program reads up to `0x3f` bytes from the user it very easy to bypass this protection. We simply enter 17 bytes, then the canary (`0xa6`) and then whichever address we want to make the program return to (to `unlock_door`, obviously). The password: `0x4141414141414141414141414141414141a64644` is a good choice.
@@ -357,3 +357,10 @@ Level 7: Whitehorse
 Up until now only the HSM 1 was employed. However, in this level the HSM 2 is introduced. Unlike the HSM 1, this model can check if a password is correct and then initiate itself an unlock. Therefore, no `unlock_door` subroutine is available to us to return to. On the other hand, remembering that this subroutine did nothing more than call the `INT` subroutine with `0x7f` as argument, we can reproduce it.
 
 The `INT` subroutine takes one argument, which is passed to it via the stack (and not using a register). Since in the MSP430 the stack grows towards lower addresses we can simply smash the stack as before and change the return address to that of an instruction calling `INT`. As opposed to other levels, here we also add the argument we want to send to `INT` after the new return address. Entering `0x6161616161616161616161616161616154457f` does just that.
+
+Level 8: Montevideo
+-------------------
+
+This level is exactly like the previous one (Whitehorse). In the overview it is mentioned that the developers changed the code to "conform to the internal secure development process". This statement is supported by the code, since now the user's password is overwritten using `memset` after it is checked.
+
+However, it still persists in the stack (where it to was copied to using `strcpy`) and therefore enables us to use the same trick from before. Entering `0x6161616161616161616161616161616160447f` will take us to the next level.
