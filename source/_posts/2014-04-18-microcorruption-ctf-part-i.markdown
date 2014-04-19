@@ -52,8 +52,40 @@ As in the previous level, the interesting part here is also the `check_password`
 ```
 A pointer to the entered password is passed to the subroutine via r15. Each of the four `cmp` instructions checks whether the two bytes pointed to by `r15` plus the offset is valid. Notice that here - unlike in the previous level - the `cmp` instruction is used and not `cmp.b`. The word size in the MSP430 is 16 bits and therefore the instructions operate on two bytes of data unless specifically told to do otherwise (by using a `.b` suffix).
 
-Since the MSP430 is [little-endian](http://en.wikipedia.org/wiki/Endianness) multi-byte values are stored in memory in reverse order. Thus, the password is `435d3f535f3e4241` (in hex).
+Since the MSP430 is [little-endian](http://en.wikipedia.org/wiki/Endianness) multi-byte values are stored in memory in reverse order. Thus, the password is `435d3f535f3e4241`.
 
 Level 3: Hanoi
 --------------
+Instead of of using the lock itself to test the entered password, here Hardware Security Module 1 (HSM 1) is used. Using the interrupt `0x7d` (refer to the user manual for more details) the microcontroller can test if the entered password is valid. Therefore, unlike previous levels, in this level it is not possible to extract the password from the given code. Looking at the `login` subroutine we can see that the following happens:
 
+1. `getsn` is used to retrieve a password of length up to `0x1c` bytes from the user into memory starting at address `0x2400`.
+2. `test_password_valid` is called with address `0x2400` as an argument.
+3. Access is granted by calling `unlock_door` if address `0x2410` stores the value `0x2d`.
+```
+4520 <login>
+4520:  c243 1024      mov.b #0x0, &0x2410
+4524:  3f40 7e44      mov   #0x447e "Enter the password to continue.", r15
+4528:  b012 de45      call  #0x45de <puts>
+452c:  3f40 9e44      mov   #0x449e "Remember: passwords are between 8 and 16 characters.", r15
+4530:  b012 de45      call  #0x45de <puts>
+4534:  3e40 1c00      mov   #0x1c, r14
+4538:  3f40 0024      mov   #0x2400, r15
+453c:  b012 ce45      call  #0x45ce <getsn>
+4540:  3f40 0024      mov   #0x2400, r15
+4544:  b012 5444      call  #0x4454 <test_password_valid>
+4548:  0f93           tst   r15
+454a:  0324           jz    $+0x8
+454c:  f240 d400 1024 mov.b #0xd4, &0x2410
+4552:  3f40 d344      mov   #0x44d3 "Testing if password is valid.", r15
+4556:  b012 de45      call  #0x45de <puts>
+455a:  f290 2d00 1024 cmp.b #0x2d, &0x2410
+4560:  0720           jne   #0x4570 <login+0x50>
+4562:  3f40 f144      mov   #0x44f1 "Access granted.", r15
+4566:  b012 de45      call  #0x45de <puts>
+456a:  b012 4844      call  #0x4448 <unlock_door>
+456e:  3041           ret
+4570:  3f40 0145      mov   #0x4501 "That password is not correct.", r15
+4574:  b012 de45      call  #0x45de <puts>
+4578:  3041           ret
+```
+Although the user is prompt to enter a password of up to 16 bytes there is no input checking. Therefore, by entering a 17 chars password with the last one set to `0x2d` it is possible to overwrite memory address `0x2410` and trick the program. A good password is thus: `414141414141414141414141414141412d`
