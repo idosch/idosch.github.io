@@ -7,4 +7,4 @@ sharing: true
 footer: true
 ---
 
-You may contact me at idoschimmel@gmail.com
+You may contact me at idosch@idosch.org
