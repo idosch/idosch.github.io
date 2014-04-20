@@ -1,12 +1,16 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>
     <url>
+        <loc>http://idosch.github.io/blog/2014/04/18/microcorruption-ctf-part-i/</loc>
+        <lastmod>2014-04-20T14:37:39+03:00</lastmod>
+    </url>
+    <url>
         <loc>http://idosch.github.io/</loc>
-        <lastmod>2014-04-17T23:45:43+03:00</lastmod>
+        <lastmod>2014-04-20T14:37:39+03:00</lastmod>
     </url>
     <url>
         <loc>http://idosch.github.io/blog/archives/</loc>
-        <lastmod>2014-04-17T23:45:43+03:00</lastmod>
+        <lastmod>2014-04-20T14:37:39+03:00</lastmod>
     </url>
     <url>
         <loc>http://idosch.github.io/robots.txt</loc>
@@ -14,6 +18,6 @@
     </url>
     <url>
         <loc>http://idosch.github.io/about/</loc>
-        <lastmod>2014-04-18T01:23:25+03:00</lastmod>
+        <lastmod>2014-04-20T13:16:10+03:00</lastmod>
     </url>
 </urlset>

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 
-  <title><![CDATA[idosch's blog]]></title>
+  <title><![CDATA[idosch]]></title>
   <link href="http://idosch.github.io/atom.xml" rel="self"/>
   <link href="http://idosch.github.io/"/>
-  <updated>2014-04-18T01:23:57+03:00</updated>
+  <updated>2014-04-20T14:42:38+03:00</updated>
   <id>http://idosch.github.io/</id>
   <author>
     <name><![CDATA[Ido Schimmel]]></name>
@@ -12,5 +12,851 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Microcorruption CTF - Part I]]></title>
+    <link href="http://idosch.github.io/blog/2014/04/18/microcorruption-ctf-part-i/"/>
+    <updated>2014-04-18T23:29:17+03:00</updated>
+    <id>http://idosch.github.io/blog/2014/04/18/microcorruption-ctf-part-i</id>
+    <content type="html"><![CDATA[<h2>Introduction</h2>
+
+<p><a href="https://microcorruption.com">Microcorruption CTF</a> (or uctf) is a security challenge in which you are given an electronic lock (Lockit all LockIT Pro) based on the <a href="http://en.wikipedia.org/wiki/TI_MSP430">TI MSP430</a> microcontroller and a debugger connected to it. The objective is to find inputs that will unlock the device in order to allow access to your operatives scattered around the world into different warehouses. The device even has his own bogus <a href="https://microcorruption.com/manual.pdf">manual</a> which is a must read.</p>
+
+<p>In this post I will write and explain my solutions to the various levels of the challenge. Please note that I did not try to optimize my solutions &ndash; that is, there are solutions with shorter input and which use less CPU cycles. In the future I might update this post with more elegant solutions.</p>
+
+<h2>Level 1: New Orleans</h2>
+
+<p>The interesting part is the <code>check_password</code> subroutine located at 0x44bc:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>44bc &lt;check_password&gt;
+</span><span class='line'>44bc:  0e43           clr   r14
+</span><span class='line'>44be:  0d4f           mov   r15, r13
+</span><span class='line'>44c0:  0d5e           add   r14, r13
+</span><span class='line'>44c2:  ee9d 0024      cmp.b @r13, 0x2400(r14)
+</span><span class='line'>44c6:  0520           jne   #0x44d2 &lt;check_password+0x16&gt;
+</span><span class='line'>44c8:  1e53           inc   r14
+</span><span class='line'>44ca:  3e92           cmp   #0x8, r14
+</span><span class='line'>44cc:  f823           jne   #0x44be &lt;check_password+0x2&gt;
+</span><span class='line'>44ce:  1f43           mov   #0x1, r15
+</span><span class='line'>44d0:  3041           ret
+</span><span class='line'>44d2:  0f43           clr   r15
+</span><span class='line'>44d4:  3041           ret</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Lines 0x44be through 0x44cc form a loop which is executed eight times, at each iteration checking whether the byte in memory location pointed to by <code>r13</code> (your password) is in accordance with the authorized password (at memory location <code>0x2400+r14</code>). Therefore, the password is <code>?qa0+]P</code>.</p>
+
+<h2>Level 2: Sydney</h2>
+
+<p>As in the previous level, the interesting part here is also the <code>check_password</code> subroutine:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>448a &lt;check_password&gt;
+</span><span class='line'>448a:  bf90 435d 0000 cmp   #0x5d43, 0x0(r15)
+</span><span class='line'>4490:  0d20           jnz   $+0x1c
+</span><span class='line'>4492:  bf90 3f53 0200 cmp   #0x533f, 0x2(r15)
+</span><span class='line'>4498:  0920           jnz   $+0x14
+</span><span class='line'>449a:  bf90 5f3e 0400 cmp   #0x3e5f, 0x4(r15)
+</span><span class='line'>44a0:  0520           jne   #0x44ac &lt;check_password+0x22&gt;
+</span><span class='line'>44a2:  1e43           mov   #0x1, r14
+</span><span class='line'>44a4:  bf90 4241 0600 cmp   #0x4142, 0x6(r15)
+</span><span class='line'>44aa:  0124           jeq   #0x44ae &lt;check_password+0x24&gt;
+</span><span class='line'>44ac:  0e43           clr   r14
+</span><span class='line'>44ae:  0f4e           mov   r14, r15
+</span><span class='line'>44b0:  3041           ret</span></code></pre></td></tr></table></div></figure>
+
+
+<p>A pointer to the entered password is passed to the subroutine via <code>r15</code>. Each of the four <code>cmp</code> instructions checks whether the two bytes pointed to by <code>r15</code> plus the offset are valid. Notice that here &ndash; unlike in the previous level &ndash; the <code>cmp</code> instruction is used and not <code>cmp.b</code>. The word size in the MSP430 is 16 bits and therefore the instructions operate on two bytes of data unless specifically told to do otherwise (by using a <code>.b</code> suffix).</p>
+
+<p>Since the MSP430 is <a href="http://en.wikipedia.org/wiki/Endianness">little-endian</a> multi-byte values are stored in memory in reverse order. Thus, the password is <code>0x435d3f535f3e4241</code>.</p>
+
+<h2>Level 3: Hanoi</h2>
+
+<p>Instead of of using the lock itself to test the entered password, here Hardware Security Module 1 (HSM 1) is used. Using the interrupt <code>0x7d</code> (refer to the user manual for more details) the microcontroller can test if the entered password is valid. Therefore, unlike previous levels, in this level it is not possible to extract the password from the given code. Looking at the <code>login</code> subroutine we can see that the following happens:</p>
+
+<ol>
+<li><code>getsn</code> is used to retrieve a password of length up to <code>0x1c</code> bytes from the user into memory starting at address <code>0x2400</code>.</li>
+<li><code>test_password_valid</code> is called with address <code>0x2400</code> as an argument.</li>
+<li>Access is granted by calling <code>unlock_door</code> if address <code>0x2410</code> stores the value <code>0x2d</code>.</li>
+</ol>
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>4520 &lt;login&gt;
+</span><span class='line'>4520:  c243 1024      mov.b #0x0, &0x2410
+</span><span class='line'>4524:  3f40 7e44      mov   #0x447e "Enter the password to continue.", r15
+</span><span class='line'>4528:  b012 de45      call  #0x45de &lt;puts&gt;
+</span><span class='line'>452c:  3f40 9e44      mov   #0x449e "Remember: passwords are between 8 and 16 characters.", r15
+</span><span class='line'>4530:  b012 de45      call  #0x45de &lt;puts&gt;
+</span><span class='line'>4534:  3e40 1c00      mov   #0x1c, r14
+</span><span class='line'>4538:  3f40 0024      mov   #0x2400, r15
+</span><span class='line'>453c:  b012 ce45      call  #0x45ce &lt;getsn&gt;
+</span><span class='line'>4540:  3f40 0024      mov   #0x2400, r15
+</span><span class='line'>4544:  b012 5444      call  #0x4454 &lt;test_password_valid&gt;
+</span><span class='line'>4548:  0f93           tst   r15
+</span><span class='line'>454a:  0324           jz    $+0x8
+</span><span class='line'>454c:  f240 d400 1024 mov.b #0xd4, &0x2410
+</span><span class='line'>4552:  3f40 d344      mov   #0x44d3 "Testing if password is valid.", r15
+</span><span class='line'>4556:  b012 de45      call  #0x45de &lt;puts&gt;
+</span><span class='line'>455a:  f290 2d00 1024 cmp.b #0x2d, &0x2410
+</span><span class='line'>4560:  0720           jne   #0x4570 &lt;login+0x50&gt;
+</span><span class='line'>4562:  3f40 f144      mov   #0x44f1 "Access granted.", r15
+</span><span class='line'>4566:  b012 de45      call  #0x45de &lt;puts&gt;
+</span><span class='line'>456a:  b012 4844      call  #0x4448 &lt;unlock_door&gt;
+</span><span class='line'>456e:  3041           ret
+</span><span class='line'>4570:  3f40 0145      mov   #0x4501 "That password is not correct.", r15
+</span><span class='line'>4574:  b012 de45      call  #0x45de &lt;puts&gt;
+</span><span class='line'>4578:  3041           ret</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Although the user is prompt to enter a password of up to 16 bytes there is no input checking. Therefore, by entering a 17 chars password with the last one set to <code>0x2d</code> it is possible to overwrite memory address <code>0x2410</code> and trick the program. A good password is thus: <code>0x414141414141414141414141414141412d</code>.</p>
+
+<h2>Level 4: Cusco</h2>
+
+<p>This one is a classic <a href="http://en.wikipedia.org/wiki/Stack_buffer_overflow">stack smashing</a> level. I won&rsquo;t get into the whole &ldquo;how the stack works&rdquo; since there are <a href="http://duartes.org/gustavo/blog/post/journey-to-the-stack/">great</a> <a href="http://duartes.org/gustavo/blog/post/epilogues-canaries-buffer-overflows/">resources</a> covering it already, but only explain the general idea bellow. The <code>login</code> subroutine does the following:</p>
+
+<ol>
+<li>Read up to <code>0x30</code> chars from the user into the stack.</li>
+<li>Test whether the entered password is valid by sending the password location as an argument to <code>test_password_valid</code>.</li>
+<li>Unlock the door via <code>unlock_door</code> if the password is valid.</li>
+</ol>
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>4500 &lt;login&gt;
+</span><span class='line'>4500:  3150 f0ff      add   #0xfff0, sp
+</span><span class='line'>4504:  3f40 7c44      mov   #0x447c "Enter the password to continue.", r15
+</span><span class='line'>4508:  b012 a645      call  #0x45a6 &lt;puts&gt;
+</span><span class='line'>450c:  3f40 9c44      mov   #0x449c "Remember: passwords are between 8 and 16 characters.", r15
+</span><span class='line'>4510:  b012 a645      call  #0x45a6 &lt;puts&gt;
+</span><span class='line'>4514:  3e40 3000      mov   #0x30, r14
+</span><span class='line'>4518:  0f41           mov   sp, r15
+</span><span class='line'>451a:  b012 9645      call  #0x4596 &lt;getsn&gt;
+</span><span class='line'>451e:  0f41           mov   sp, r15
+</span><span class='line'>4520:  b012 5244      call  #0x4452 &lt;test_password_valid&gt;
+</span><span class='line'>4524:  0f93           tst   r15
+</span><span class='line'>4526:  0524           jz    #0x4532 &lt;login+0x32&gt;
+</span><span class='line'>4528:  b012 4644      call  #0x4446 &lt;unlock_door&gt;
+</span><span class='line'>452c:  3f40 d144      mov   #0x44d1 "Access granted.", r15
+</span><span class='line'>4530:  023c           jmp   #0x4536 &lt;login+0x36&gt;
+</span><span class='line'>4532:  3f40 e144      mov   #0x44e1 "That password is not correct.", r15
+</span><span class='line'>4536:  b012 a645      call  #0x45a6 &lt;puts&gt;
+</span><span class='line'>453a:  3150 1000      add   #0x10, sp
+</span><span class='line'>453e:  3041           ret</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The user is prompt to enter a password between 8 and 16 chars (although, as you have probably noticed, it is not forced). Entering <code>idosch1234</code>, putting a breakpoint at <code>0x453e</code> (just before <code>login</code> returns) and examining the stack we see the following (the stack pointer points to <code>0x43fe</code>):</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>break 453e</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>43d0:   0000 0000 0000 0000 0000 0000 5645 0100   ............VE..
+</span><span class='line'>43e0:   5645 0300 ca45 0000 0a00 0000 3a45 6964   VE...E......:Eid
+</span><span class='line'>43f0:   6f73 6368 3132 3334 0000 0000 0000 3c44   osch1234.......D</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Visible are:</p>
+
+<ol>
+<li>Leftovers from previous <a href="http://en.wikipedia.org/wiki/Call_stack">stack frames</a> (in lower addresses).</li>
+<li>The entered password in the current stack frame and the address to return to after the <code>login</code> subroutine ends: <code>0x443c</code>.</li>
+</ol>
+
+
+<p>By entering a 18 bytes password we can effectively take control of the program execution and make it return to wherever we want. A good place is the <code>unlock_door</code> subroutine located at memory address <code>0x4446</code>. Entering the password <code>0x414141414141414141414141414141414644</code> does the trick.</p>
+
+<h2>Level 5: Reykjavik</h2>
+
+<p>At first this level seems very weird as there are no calls to the usual I/O subroutines <code>getsn</code> and <code>puts</code>. However, looking at <code>main</code>, we see a call to a subroutine starting at address <code>0x2400</code>:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>4438 &lt;main&gt;
+</span><span class='line'>4438:  3e40 2045      mov   #0x4520, r14
+</span><span class='line'>443c:  0f4e           mov   r14, r15
+</span><span class='line'>443e:  3e40 f800      mov   #0xf8, r14
+</span><span class='line'>4442:  3f40 0024      mov   #0x2400, r15
+</span><span class='line'>4446:  b012 8644      call  #0x4486 &lt;enc&gt;
+</span><span class='line'>444a:  b012 0024      call  #0x2400
+</span><span class='line'>444e:  0f43           clr   r15</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Using the disassembler the following code reveals itself:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+<span class='line-number'>107</span>
+<span class='line-number'>108</span>
+<span class='line-number'>109</span>
+<span class='line-number'>110</span>
+<span class='line-number'>111</span>
+<span class='line-number'>112</span>
+<span class='line-number'>113</span>
+<span class='line-number'>114</span>
+<span class='line-number'>115</span>
+<span class='line-number'>116</span>
+<span class='line-number'>117</span>
+<span class='line-number'>118</span>
+<span class='line-number'>119</span>
+<span class='line-number'>120</span>
+<span class='line-number'>121</span>
+<span class='line-number'>122</span>
+<span class='line-number'>123</span>
+<span class='line-number'>124</span>
+<span class='line-number'>125</span>
+<span class='line-number'>126</span>
+<span class='line-number'>127</span>
+<span class='line-number'>128</span>
+<span class='line-number'>129</span>
+<span class='line-number'>130</span>
+<span class='line-number'>131</span>
+<span class='line-number'>132</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>push r11
+</span><span class='line'>push r4
+</span><span class='line'>mov  sp, r4
+</span><span class='line'>add  #0x4, r4
+</span><span class='line'>add  #0xffe0, sp
+</span><span class='line'>mov  #0x4520, r11
+</span><span class='line'>jmp  $+0x10
+</span><span class='line'>inc  r11
+</span><span class='line'>sxt  r15
+</span><span class='line'>push r15
+</span><span class='line'>push #0x0
+</span><span class='line'>call #0x2464
+</span><span class='line'>add  #0x4, sp
+</span><span class='line'>mov.b    @r11, r15
+</span><span class='line'>tst.b    r15
+</span><span class='line'>jnz  $-0x12
+</span><span class='line'>push #0xa
+</span><span class='line'>push #0x0
+</span><span class='line'>call #0x2464
+</span><span class='line'>add  #0x4, sp
+</span><span class='line'>push #0x1f
+</span><span class='line'>mov  #0xffdc, r15
+</span><span class='line'>add  r4, r15
+</span><span class='line'>push r15
+</span><span class='line'>push #0x2
+</span><span class='line'>call #0x2464
+</span><span class='line'>add  #0x6, sp
+</span><span class='line'>cmp  #0xadf2, -0x24(r4)
+</span><span class='line'>jnz  $+0xc
+</span><span class='line'>push #0x7f
+</span><span class='line'>call #0x2464
+</span><span class='line'>incd sp
+</span><span class='line'>add  #0x20, sp
+</span><span class='line'>pop  r4
+</span><span class='line'>pop  r11
+</span><span class='line'>ret
+</span><span class='line'>mov  0x2(sp), r14
+</span><span class='line'>push sr
+</span><span class='line'>mov  r14, r15
+</span><span class='line'>swpb r15
+</span><span class='line'>mov  r15, sr
+</span><span class='line'>bis  #0x8000, sr
+</span><span class='line'>call #0x10
+</span><span class='line'>pop  sr
+</span><span class='line'>ret
+</span><span class='line'>call &0x9a18
+</span><span class='line'>bis  @r12, sr
+</span><span class='line'>bit.b    r9, r5
+</span><span class='line'>subc.b   r9, sr
+</span><span class='line'>add  @r5, r13
+</span><span class='line'>sub  r14, -0x5d5c(r5)
+</span><span class='line'>bis.b    @r7, r7
+</span><span class='line'>dadd 0x19a1(r14), r4
+</span><span class='line'>and.b    @r6+, r6
+</span><span class='line'>bic.b    r11, sr
+</span><span class='line'>rrc  -0x5f2(r12)
+</span><span class='line'>invalid  @r6
+</span><span class='line'>dadd.b   @r7+, r4
+</span><span class='line'>addc.b   r11, sp
+</span><span class='line'>jge  $-0x5a
+</span><span class='line'>incd &0xe422
+</span><span class='line'>dadd.b   @r15, r6
+</span><span class='line'>dadd.b   r5, -0x746d(sp)
+</span><span class='line'>subc sp, -0x7765(r9)
+</span><span class='line'>cmp.b    @r11+, 0x7466(r10)
+</span><span class='line'>jnz  $+0x29e
+</span><span class='line'>addc @r11, r10
+</span><span class='line'>mov  #-0x1, 0x5191(sp)
+</span><span class='line'>bic  @r12+, r13
+</span><span class='line'>and  @r5, -0x5826(r6)
+</span><span class='line'>jmp  $-0x48
+</span><span class='line'>jmp  $+0x11c
+</span><span class='line'>rrc.b    r13
+</span><span class='line'>jge  $-0x370
+</span><span class='line'>dadd.b   -0x65bb(r6), 0x6124(r15)
+</span><span class='line'>sxt  &0x9132
+</span><span class='line'>xor  0x5781(r6), r4
+</span><span class='line'>and  @r14+, -0x22d3(pc)
+</span><span class='line'>reti pc
+</span><span class='line'>sub  r8, 0x1063(r6)
+</span><span class='line'>bit  #-0x1, r10
+</span><span class='line'>jnc  $-0x13c
+</span><span class='line'>bis  r9, r11
+</span><span class='line'>jmp  $-0x16e
+</span><span class='line'>rrc.b    r14
+</span><span class='line'>subc.b   0x384c(pc), r8
+</span><span class='line'>jmp  $+0x194
+</span><span class='line'>jge  $-0x200
+</span><span class='line'>rra  r14
+</span><span class='line'>jmp  $-0x300
+</span><span class='line'>add.b    @r5+, -0x1052(r10)
+</span><span class='line'>rrc  r5
+</span><span class='line'>jc   $+0x4a
+</span><span class='line'>add  @r6+, r12
+</span><span class='line'>dadd 0x7be5(r15), 4
+</span><span class='line'>bit  r15, 0x4030(r10)
+</span><span class='line'>jge  $-0x74
+</span><span class='line'>addc.b   @r14, r5
+</span><span class='line'>subc r8, &0xf99a
+</span><span class='line'>call -0x7c42(r13)
+</span><span class='line'>sub  @r12+, 8
+</span><span class='line'>bis  @r8+, r10
+</span><span class='line'>add  @r10+, r9
+</span><span class='line'>xor.b    #-0x1, 0x34f(r12)
+</span><span class='line'>bic  r9, -0x6a6d(r14)
+</span><span class='line'>rra.b    r10
+</span><span class='line'>jl   $-0x62
+</span><span class='line'>call @r13+
+</span><span class='line'>subc.b   @r9+, r7
+</span><span class='line'>bic.b    #0x0, -0xda1(r9)
+</span><span class='line'>bic  @r7+, r13
+</span><span class='line'>add.b    #0x1, r9
+</span><span class='line'>jz   $-0x2ee
+</span><span class='line'>bit.b    -0x727(r5), -0x619d(pc)
+</span><span class='line'>subc.b   @pc, -0x32ff(r9)
+</span><span class='line'>rra  @sp
+</span><span class='line'>addc.b   r10, 0x2cd1(r10)
+</span><span class='line'>xor  &0x3875, -0x3a6a(r7)
+</span><span class='line'>jnc  $+0x120
+</span><span class='line'>sub.b    &0xe51b, 0x20ab(r6)
+</span><span class='line'>sub.b    @r9+, 4
+</span><span class='line'>dadd.b   r10, r8
+</span><span class='line'>dinc r15
+</span><span class='line'>jc   $-0x170
+</span><span class='line'>addc @r4, 0x2dde(r5)
+</span><span class='line'>swpb @r7+
+</span><span class='line'>sub  0x552(sp), 0x448d(pc)
+</span><span class='line'>and.b    r4, 0x2ebc(r15)
+</span><span class='line'>subc.b   -0xb2b(r10), r7
+</span><span class='line'>add  @sp, 0x43c2(r8)
+</span><span class='line'>subc @r13, r7
+</span><span class='line'>bic  @r10, 0x6b1e(r4)</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This is quite a clusterfuck, but pretty quickly it becomes evident that the <code>INT</code> subroutine (the one used to interface with the HSMs and the deadbolt) is at <code>0x2464</code> (line 37). The interesting part is at <code>0x2450</code> (line 31) where the <code>INT</code> subroutine is called with <code>0x7F</code> as an argument:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>...
+</span><span class='line'>cmp  #0xadf2, -0x24(r4)
+</span><span class='line'>jnz  $+0xc
+</span><span class='line'>push #0x7f
+</span><span class='line'>call #0x2464
+</span><span class='line'>...</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Looking at the user manual one can see that this interrupt is used to interface with the deadbolt and trigger an unlock. In order to reach this line the value at memory location <code>@r4-0x24</code> needs to be <code>f2ad</code>. Using the debugger, this memory location turns out to be the start of the entered password. Therefore, the password is: <code>0xf2ad</code>.</p>
+
+<h2>Level 6: Johannesburg</h2>
+
+<p>As with previous levels, we begin our journey with the <code>login</code> subroutine:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>452c &lt;login&gt;
+</span><span class='line'>452c:  3150 eeff      add   #0xffee, sp
+</span><span class='line'>4530:  f140 a600 1100 mov.b #0xa6, 0x11(sp)
+</span><span class='line'>4536:  3f40 7c44      mov   #0x447c "Enter the password to continue.", r15
+</span><span class='line'>453a:  b012 f845      call  #0x45f8 &lt;puts&gt;
+</span><span class='line'>453e:  3f40 9c44      mov   #0x449c "Remember: passwords are between 8 and 16 characters.", r15
+</span><span class='line'>4542:  b012 f845      call  #0x45f8 &lt;puts&gt;
+</span><span class='line'>4546:  3e40 3f00      mov   #0x3f, r14
+</span><span class='line'>454a:  3f40 0024      mov   #0x2400, r15
+</span><span class='line'>454e:  b012 e845      call  #0x45e8 &lt;getsn&gt;
+</span><span class='line'>4552:  3e40 0024      mov   #0x2400, r14
+</span><span class='line'>4556:  0f41           mov   sp, r15
+</span><span class='line'>4558:  b012 2446      call  #0x4624 &lt;strcpy&gt;
+</span><span class='line'>455c:  0f41           mov   sp, r15
+</span><span class='line'>455e:  b012 5244      call  #0x4452 &lt;test_password_valid&gt;
+</span><span class='line'>4562:  0f93           tst   r15
+</span><span class='line'>4564:  0524           jz    #0x4570 &lt;login+0x44&gt;
+</span><span class='line'>4566:  b012 4644      call  #0x4446 &lt;unlock_door&gt;
+</span><span class='line'>456a:  3f40 d144      mov   #0x44d1 "Access granted.", r15
+</span><span class='line'>456e:  023c           jmp   #0x4574 &lt;login+0x48&gt;
+</span><span class='line'>4570:  3f40 e144      mov   #0x44e1 "That password is not correct.", r15
+</span><span class='line'>4574:  b012 f845      call  #0x45f8 &lt;puts&gt;
+</span><span class='line'>4578:  f190 a600 1100 cmp.b #0xa6, 0x11(sp)
+</span><span class='line'>457e:  0624           jeq   #0x458c &lt;login+0x60&gt;
+</span><span class='line'>4580:  3f40 ff44      mov   #0x44ff "Invalid Password Length: password too long.", r15
+</span><span class='line'>4584:  b012 f845      call  #0x45f8 &lt;puts&gt;
+</span><span class='line'>4588:  3040 3c44      br    #0x443c &lt;__stop_progExec__&gt;
+</span><span class='line'>458c:  3150 1200      add   #0x12, sp
+</span><span class='line'>4590:  3041           ret</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This is very similar to Cusco, the difference being that the developers &ldquo;improved the security of the lock by ensuring passwords that are too long will be rejected&rdquo;. This is implemented in <code>0x4578</code>, where the value saved in the stack 18 bytes after our password starts is verified to be <code>0xa6</code>, therefore allowing us to enter no more than 17 chars. The concept is similar to <a href="http://en.wikipedia.org/wiki/Stack_buffer_overflow#Stack_canaries">stack canaries</a>, the difference being that true stack canaries are random and thus can not be so easily exploited. The stack with entered password <code>idosch1234</code>:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>43d0:   0000 0000 0000 0000 0000 a845 0100 a845   ...........E...E
+</span><span class='line'>43e0:   0300 1c46 0000 0a00 0000 7845 6964 6f73   ...F......xEidos
+</span><span class='line'>43f0:   6368 3132 3334 0000 0000 0000 00a6 3c44   ch1234........&gt;D</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Visible are the password, the stack canary at <code>0x43fd</code> and the saved PC (<code>0x443c</code>). Since the program reads up to <code>0x3f</code> bytes from the user it very easy to bypass this protection. We simply enter 17 bytes, then the canary (<code>0xa6</code>) and then whichever address we want to make the program return to (to <code>unlock_door</code>, obviously). The password: <code>0x4141414141414141414141414141414141a64644</code> is a good choice.</p>
+
+<h2>Level 7: Whitehorse</h2>
+
+<p>Up until now only the HSM 1 was employed. However, in this level the HSM 2 is introduced. Unlike the HSM 1, this model can check if a password is correct and then initiate itself an unlock. Therefore, no <code>unlock_door</code> subroutine is available to us to return to. On the other hand, remembering that this subroutine did nothing more than call the <code>INT</code> subroutine with <code>0x7f</code> as argument, we can reproduce it.</p>
+
+<p>The <code>INT</code> subroutine takes one argument, which is passed to it via the stack (and not using a register). Since in the MSP430 the stack grows towards lower addresses we can simply smash the stack as before and change the return address to that of an instruction calling <code>INT</code>. As opposed to other levels, here we also add the argument we want to send to <code>INT</code> after the new return address. Entering <code>0x6161616161616161616161616161616154457f</code> does just that.</p>
+
+<h2>Level 8: Montevideo</h2>
+
+<p>This level is exactly like the previous one (Whitehorse). In the overview it is mentioned that the developers changed the code to &ldquo;conform to the internal secure development process&rdquo;. This statement is supported by the code, since now the user&rsquo;s password is overwritten using <code>memset</code> after it is checked.</p>
+
+<p>However, it still persists in the stack (where it to was copied to using <code>strcpy</code>) and therefore enables us to use the same trick from before. Entering <code>0x6161616161616161616161616161616160447f</code> will take us to the next level.</p>
+
+<h2>Level 9: Santa Cruz</h2>
+
+<p>In this level the HSM 1 is used instead of HSM 2. Thus, the code to unlock the deadbolt resides inside the LockIT Pro and we need to find a way to make the program reach it. A viable way is to smash the stack and overwrite the return address with that of <code>unlock_door</code>. However, this is a bit more complicated than previous levels. Below is the code of the infamous <code>login</code> subroutine broken into several parts and accompanied by my explanations.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>4550 &lt;login&gt;
+</span><span class='line'>4550:  0b12           push  r11
+</span><span class='line'>4552:  0412           push  r4
+</span><span class='line'>4554:  0441           mov   sp, r4
+</span><span class='line'>4556:  2452           add   #0x4, r4
+</span><span class='line'>4558:  3150 d8ff      add   #0xffd8, sp
+</span><span class='line'>455c:  c443 faff      mov.b #0x0, -0x6(r4)
+</span><span class='line'>4560:  f442 e7ff      mov.b #0x8, -0x19(r4)
+</span><span class='line'>4564:  f440 1000 e8ff mov.b #0x10, -0x18(r4)
+</span><span class='line'>456a:  3f40 8444      mov   #0x4484 "Authentication now requires a username and password.", r15
+</span><span class='line'>456e:  b012 2847      call  #0x4728 &lt;puts&gt;
+</span><span class='line'>4572:  3f40 b944      mov   #0x44b9 "Remember: both are between 8 and 16 characters.", r15
+</span><span class='line'>4576:  b012 2847      call  #0x4728 &lt;puts&gt;
+</span><span class='line'>457a:  3f40 e944      mov   #0x44e9 "Please enter your username:", r15
+</span><span class='line'>457e:  b012 2847      call  #0x4728 &lt;puts&gt;
+</span><span class='line'>4582:  3e40 6300      mov   #0x63, r14
+</span><span class='line'>4586:  3f40 0424      mov   #0x2404, r15
+</span><span class='line'>458a:  b012 1847      call  #0x4718 &lt;getsn&gt;
+</span><span class='line'>458e:  3f40 0424      mov   #0x2404, r15
+</span><span class='line'>4592:  b012 2847      call  #0x4728 &lt;puts&gt;
+</span><span class='line'>4596:  3e40 0424      mov   #0x2404, r14
+</span><span class='line'>459a:  0f44           mov   r4, r15
+</span><span class='line'>459c:  3f50 d6ff      add   #0xffd6, r15
+</span><span class='line'>45a0:  b012 5447      call  #0x4754 &lt;strcpy&gt;
+</span><span class='line'>45a4:  3f40 0545      mov   #0x4505 "Please enter your password:", r15
+</span><span class='line'>45a8:  b012 2847      call  #0x4728 &lt;puts&gt;
+</span><span class='line'>45ac:  3e40 6300      mov   #0x63, r14
+</span><span class='line'>45b0:  3f40 0424      mov   #0x2404, r15
+</span><span class='line'>45b4:  b012 1847      call  #0x4718 &lt;getsn&gt;
+</span><span class='line'>45b8:  3f40 0424      mov   #0x2404, r15
+</span><span class='line'>45bc:  b012 2847      call  #0x4728 &lt;puts&gt;
+</span><span class='line'>45c0:  0b44           mov   r4, r11
+</span><span class='line'>45c2:  3b50 e9ff      add   #0xffe9, r11
+</span><span class='line'>45c6:  3e40 0424      mov   #0x2404, r14
+</span><span class='line'>45ca:  0f4b           mov   r11, r15
+</span><span class='line'>45cc:  b012 5447      call  #0x4754 &lt;strcpy&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>At this stage, assuming we entered <code>doge</code> and <code>idosch1234</code> as username and password, the stack will look like this:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>4390:   0000 d846 0300 4c47 0000 0a00 0000 d045   ...F..LG.......E
+</span><span class='line'>43a0:   0000 646f 6765 0000 0000 0000 0000 0000   ..doge..........
+</span><span class='line'>43b0:   0000 0008 1069 646f 7363 6831 3233 3400   .....idosch1234.
+</span><span class='line'>43c0:   0000 0000 0000 0000 0000 0000 4044 0000   ............@D..</span></code></pre></td></tr></table></div></figure>
+
+
+<p>with <code>sp</code> pointing to <code>0x43a0</code>. It&rsquo;s important to take notice here of several parameters:</p>
+
+<ol>
+<li>Username and password starting at addresses <code>0x43a2</code> and <code>0x43b5</code>, respectively.</li>
+<li>Return address at <code>0x43cc</code>.</li>
+<li>Values <code>0x8</code> and <code>0x10</code> at <code>0x43b3</code> and <code>0x43b4</code>, respectively. These values will be later used in order to make sure that the password&rsquo;s length is indeed between 8 to 16 chars (inclusive).</li>
+</ol>
+
+
+<p>The password&rsquo;s length is computed and stored in <code>r11</code>.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>45d0:  0f4b           mov   r11, r15
+</span><span class='line'>45d2:  0e44           mov   r4, r14
+</span><span class='line'>45d4:  3e50 e8ff      add   #0xffe8, r14
+</span><span class='line'>45d8:  1e53           inc   r14
+</span><span class='line'>45da:  ce93 0000      tst.b 0x0(r14)
+</span><span class='line'>45de:  fc23           jnz   #0x45d8 &lt;login+0x88&gt;
+</span><span class='line'>45e0:  0b4e           mov   r14, r11
+</span><span class='line'>45e2:  0b8f           sub   r15, r11</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The password&rsquo;s length is checked to be less than 16 chars using the value stored at <code>0x43b4</code>.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>45e4:  5f44 e8ff      mov.b -0x18(r4), r15
+</span><span class='line'>45e8:  8f11           sxt   r15
+</span><span class='line'>45ea:  0b9f           cmp   r15, r11
+</span><span class='line'>45ec:  0628           jnc   #0x45fa &lt;login+0xaa&gt;
+</span><span class='line'>45ee:  1f42 0024      mov   &0x2400, r15
+</span><span class='line'>45f2:  b012 2847      call  #0x4728 &lt;puts&gt;
+</span><span class='line'>45f6:  3040 4044      br    #0x4440 &lt;__stop_progExec__&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And now it&rsquo;s checked to be at least 8 chars long.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>45fa:  5f44 e7ff      mov.b -0x19(r4), r15
+</span><span class='line'>45fe:  8f11           sxt   r15
+</span><span class='line'>4600:  0b9f           cmp   r15, r11
+</span><span class='line'>4602:  062c           jc    #0x4610 &lt;login+0xc0&gt;
+</span><span class='line'>4604:  1f42 0224      mov   &0x2402, r15
+</span><span class='line'>4608:  b012 2847      call  #0x4728 &lt;puts&gt;
+</span><span class='line'>460c:  3040 4044      br    #0x4440 &lt;__stop_progExec__&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>After passing both of these checks the password is now passed to the HSM 1 for validation (spoiler: it&rsquo;s not).</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>4610:  c443 d4ff      mov.b #0x0, -0x2c(r4)
+</span><span class='line'>4614:  3f40 d4ff      mov   #0xffd4, r15
+</span><span class='line'>4618:  0f54           add   r4, r15
+</span><span class='line'>461a:  0f12           push  r15
+</span><span class='line'>461c:  0f44           mov   r4, r15
+</span><span class='line'>461e:  3f50 e9ff      add   #0xffe9, r15
+</span><span class='line'>4622:  0f12           push  r15
+</span><span class='line'>4624:  3f50 edff      add   #0xffed, r15
+</span><span class='line'>4628:  0f12           push  r15
+</span><span class='line'>462a:  3012 7d00      push  #0x7d
+</span><span class='line'>462e:  b012 c446      call  #0x46c4 &lt;INT&gt;
+</span><span class='line'>4632:  3152           add   #0x8, sp
+</span><span class='line'>4634:  c493 d4ff      tst.b -0x2c(r4)
+</span><span class='line'>4638:  0524           jz    #0x4644 &lt;login+0xf4&gt;
+</span><span class='line'>463a:  b012 4a44      call  #0x444a &lt;unlock_door&gt;
+</span><span class='line'>463e:  3f40 2145      mov   #0x4521 "Access granted.", r15
+</span><span class='line'>4642:  023c           jmp   #0x4648 &lt;login+0xf8&gt;
+</span><span class='line'>4644:  3f40 3145      mov   #0x4531 "That password is not correct.", r15
+</span><span class='line'>4648:  b012 2847      call  #0x4728 &lt;puts&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Although the password&rsquo;s length was already checked twice, another test is performed here: memory location <code>0x43c6</code> is checked to be <code>0x0</code> (very much like the &ldquo;canary&rdquo; in Johannesburg).</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>464c:  c493 faff      tst.b -0x6(r4)
+</span><span class='line'>4650:  0624           jz    #0x465e &lt;login+0x10e&gt;
+</span><span class='line'>4652:  1f42 0024      mov   &0x2400, r15
+</span><span class='line'>4656:  b012 2847      call  #0x4728 &lt;puts&gt;
+</span><span class='line'>465a:  3040 4044      br    #0x4440 &lt;__stop_progExec__&gt;
+</span><span class='line'>465e:  3150 2800      add   #0x28, sp
+</span><span class='line'>4662:  3441           pop   r4
+</span><span class='line'>4664:  3b41           pop   r11
+</span><span class='line'>4666:  3041           ret</span></code></pre></td></tr></table></div></figure>
+
+
+<p>After absorbing all these information it&rsquo;s pretty clear what to do. We begin by entering a username that will overwrite the password&rsquo;s length boundaries at <code>0x43a2</code> and <code>0x43b5</code> with more appropriate values such as <code>0x1</code> and <code>0xff</code>. We also use the username to change the return address at <code>0x43cc</code> to that of <code>unlock_door</code>. <code>0x616161616161616161616161616161616101ff61616161616161616161616161616161616161616161614a44</code> is a good choice. Next, we enter a password whose sole purpose is to overwrite <code>0x43c6</code> with <code>0x0</code>. Since the username already took care of the password&rsquo;s length we can enter a password longer than 16 chars. <code>0x616161616161616161616161616161616100</code> does the job.</p>
+
+<p>In the next post I&rsquo;ll add my solutions to the next levels.</p>
+]]></content>
+  </entry>
   
 </feed>
