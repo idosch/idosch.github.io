@@ -10,7 +10,7 @@ Introduction
 ------------
 [Microcorruption CTF](https://microcorruption.com) (or uctf) is a security challenge in which you are given an electronic lock (Lockit all LockIT Pro) based on the [TI MSP430](http://en.wikipedia.org/wiki/TI_MSP430) microcontroller and a debugger connected to it. The objective is to find inputs that will unlock the device in order to allow access to your operatives scattered around the world into different warehouses. The device even has his own bogus [manual](https://microcorruption.com/manual.pdf) which is a must read.
 
-In this post I will write and explain my solutions to the various levels of the challenge. Please note that I did not try to optimize my solution - that is, there are solution with shorter input and which use less CPU cycles. In the future I might update this post with more elegant solutions.
+In this post I will write and explain my solutions to the various levels of the challenge. Please note that I did not try to optimize my solutions - that is, there are solutions with shorter input and which use less CPU cycles. In the future I might update this post with more elegant solutions.
 
 Level 1: New Orleans
 --------------------
@@ -50,7 +50,7 @@ As in the previous level, the interesting part here is also the `check_password`
 44ae:  0f4e           mov   r14, r15
 44b0:  3041           ret
 ```
-A pointer to the entered password is passed to the subroutine via r15. Each of the four `cmp` instructions checks whether the two bytes pointed to by `r15` plus the offset is valid. Notice that here - unlike in the previous level - the `cmp` instruction is used and not `cmp.b`. The word size in the MSP430 is 16 bits and therefore the instructions operate on two bytes of data unless specifically told to do otherwise (by using a `.b` suffix).
+A pointer to the entered password is passed to the subroutine via `r15`. Each of the four `cmp` instructions checks whether the two bytes pointed to by `r15` plus the offset are valid. Notice that here - unlike in the previous level - the `cmp` instruction is used and not `cmp.b`. The word size in the MSP430 is 16 bits and therefore the instructions operate on two bytes of data unless specifically told to do otherwise (by using a `.b` suffix).
 
 Since the MSP430 is [little-endian](http://en.wikipedia.org/wiki/Endianness) multi-byte values are stored in memory in reverse order. Thus, the password is `0x435d3f535f3e4241`.
 
@@ -142,7 +142,7 @@ By entering a 18 bytes password we can effectively take control of the program e
 
 Level 5: Reykjavik
 ------------------
-At first this level seems very weird as there are no calls to the usual I/O subroutines `getsn` and `puts`. However, looking at `main`, visible is a call to a subroutine starting at address `0x2400`:
+At first this level seems very weird as there are no calls to the usual I/O subroutines `getsn` and `puts`. However, looking at `main`, we see a call to a subroutine starting at address `0x2400`:
 
 ```
 4438 <main>
@@ -491,3 +491,5 @@ Although the password's length was already checked twice, another test is perfor
 4666:  3041           ret
 ```
 After absorbing all these information it's pretty clear what to do. We begin by entering a username that will overwrite the password's length boundaries at `0x43a2` and `0x43b5` with more appropriate values such as `0x1` and `0xff`. We also use the username to change the return address at `0x43cc` to that of `unlock_door`. `0x616161616161616161616161616161616101ff61616161616161616161616161616161616161616161614a44` is a good choice. Next, we enter a password whose sole purpose is to overwrite `0x43c6` with `0x0`. Since the username already took care of the password's length we can enter a password longer than 16 chars. `0x616161616161616161616161616161616100` does the job.
+
+In the next post I'll add my solutions to the next levels.
