@@ -291,7 +291,7 @@ subc @r13, r7
 bic  @r10, 0x6b1e(r4)
 ```
 
-This is quite a clusterfuck, but pretty quickly it becomes evident that the INT subroutine (the one used to interface with the HSMs and the deadbolt) is at `0x2464` (line 37). The interesting part is at `0x2450` (line 31) where the INT subroutine is called with `0x7F` as an argument:
+This is quite a clusterfuck, but pretty quickly it becomes evident that the `INT` subroutine (the one used to interface with the HSMs and the deadbolt) is at `0x2464` (line 37). The interesting part is at `0x2450` (line 31) where the `INT` subroutine is called with `0x7F` as an argument:
 
 ```
 ...
