@@ -52,3 +52,15 @@ $ python2 -c "print '41'*4 + '4c44' + '41'*218" | xclip -i
 ```
 
 Where the first four bytes simply fill the space between the end of the user name and the start of the return address and the next two bytes are the address of `unlock_door` (`0x444c`).
+
+Level 11: Addis Ababa
+---------------------
+The first thing to notice is the use of the `printf` subroutine as opposed to previous levels. Therefore, it is pretty obvious it needs to be examined.
+
+The LockIT Pro manual lists the following `printf` conversion specifiers: `s`, `x`, `c` and `n`. The most interesting is the last, as it "saves the number of characters printed thus far". Thus, it is possible to use this option in order to write data into memory and potentially change the order of execution.
+
+If only one `n` specifier is used, then the character count up to `%` is copied to memory location `0x0`. However, if another specifier is used, then the function assumes the address to write to is given by the first two bytes of the format string. Hence, it is possible to write small values (byte count) to arbitrary memory locations, such as the memory location where the return address of the `printf` subroutine is stored (`0x402e`). This bug is usually the result of human error where the programmer mistakenly wrote `printf(str_buf)` instead of `printf("%s", str_buf)`. Of course using the `n` specifier is not the only way to exploit this, but there is a whole class of such exploits, called [format string vulnerability](http://en.wikipedia.org/wiki/Uncontrolled_format_string).
+
+Since we can only write small values it is not possible to change the return address to anything useful (the `unlock_door` routine is at `0x44da`). However, in this level the HSM 1 is used, which writes a non-zero value to a specific memory location (`0x4032` in this case) if the user's password is correct. Owing to the fact that the `printf` subroutine is called after the password is checked, we can write a non-zero value (our byte count) to `0x4032`, thereby unlocking the door. This is accomplished by using the following input: `0x3240256e256e`.
+
+Conclusion: never write `printf(buffer)`.
