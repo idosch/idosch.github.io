@@ -314,3 +314,10 @@ Since the return address is stored on the stack at `0x43fe` it's possible to ove
 ```
 
 The last instruction jumps to the second instruction of `INT` with an interrupt `0xff` (it's equivalent to `0x7f` - look at the code) stored in `r14`, thereby allowing us to unlock the door. As you've probably noticed all the instructions are represented using only alphanumeric characters (`0x30-0x39, 0x41-0x5a, 0x61-0x7a`).
+
+Level 16: Bangalore
+-------------------
+
+This level introduces [DEP](http://en.wikipedia.org/wiki/Data_Execution_Prevention), in which some of the memory pages (`0x100` bytes segments in our case) are executable and some are writable, but not both. Thus, writing a shellcode to the stack is OK, but it's no executable.
+
+Since the stack is on the boundary between pages `0x3f` and `0x40` it's possible to write our shellcode into `0x40` while it's still writable, but in a way that when `login` returns it will mark it as executable. The shellcode is very similar to the previous ones, so I'll just write the password here: `0x61616161616161616161616161616161be44000000000000400000000c4031800f00324000ffb0121000`
