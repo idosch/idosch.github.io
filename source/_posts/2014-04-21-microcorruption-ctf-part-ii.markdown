@@ -295,3 +295,22 @@ Although it's not possible to use the `%n` specifier to do anything useful, we c
 0000bcdc
 ```
 Which is the address of `printf`! Knowing the the new address of `printf` and the program's structure we can easily overwrite the return address with that of our shellcode (also on the stack), which will trigger an unlock.
+
+Level 15: Lagos
+---------------
+
+Lagos is an ordinary level except for the fact the only alphanumeric characters can be used for the password. This greatly decreases the number of instructions we can use in our shellcode. Thankfully, Ryan Hitchman has already compiled a [list](https://gist.github.com/rmmh/8515577) of instructions that can be represented using only alphanumeric characters.
+
+Looking at `login` we see that `0x200` bytes are read from the user as a password, then copied over to the stack starting at address `0x43ed` and finally the original password location (`0x2400`) is cleared using `memset`. As before, the objective is to trigger and unlock by issuing the `0x7f` interrupt.
+
+Since the return address is stored on the stack at `0x43fe` it's possible to overwrite it using the password. Now, I'm pretty sure some people managed to use an address that will allow them to write a shorter shellcode by exploiting a bug in the emulator, but I'll use a straightforward one: `0x4430` which will take us to the beginning of the shellcode:
+
+```
+3453        add #-0x1, r4
+4e44        mov.b r4, r14
+7850 7272   add.b #0x7272, r8
+3850 7a43   add #0x437a, r8
+3048        mov @r8+, pc
+```
+
+The last instruction jumps to the second instruction of `INT` with an interrupt `0xff` (it's equivalent to `0x7f` - look at the code) stored in `r14`, thereby allowing us to unlock the door. As you've probably noticed all the instructions are represented using only alphanumeric characters (`0x30-0x39, 0x41-0x5a, 0x61-0x7a`).
