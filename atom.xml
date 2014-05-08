@@ -2,10 +2,10 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
 
   <title><![CDATA[idosch]]></title>
-  <link href="http://idosch.github.io/atom.xml" rel="self"/>
-  <link href="http://idosch.github.io/"/>
-  <updated>2014-05-07T23:21:17+03:00</updated>
-  <id>http://idosch.github.io/</id>
+  <link href="http://idosch.org/atom.xml" rel="self"/>
+  <link href="http://idosch.org/"/>
+  <updated>2014-05-08T22:12:56+03:00</updated>
+  <id>http://idosch.org/</id>
   <author>
     <name><![CDATA[Ido Schimmel]]></name>
     
@@ -15,9 +15,9 @@
   
   <entry>
     <title type="html"><![CDATA[Microcorruption CTF - Part II]]></title>
-    <link href="http://idosch.github.io/blog/2014/04/21/microcorruption-ctf-part-ii/"/>
+    <link href="http://idosch.org/blog/2014/04/21/microcorruption-ctf-part-ii/"/>
     <updated>2014-04-21T22:51:26+03:00</updated>
-    <id>http://idosch.github.io/blog/2014/04/21/microcorruption-ctf-part-ii</id>
+    <id>http://idosch.org/blog/2014/04/21/microcorruption-ctf-part-ii</id>
     <content type="html"><![CDATA[<h2>Introduction</h2>
 
 <p>This is the second post about the <a href="https://microcorruption.com">microcorruption CTF</a>. For the previous post click <a href="http://idosch.org/blog/2014/04/18/microcorruption-ctf-part-i/">here</a>.</p>
@@ -518,9 +518,9 @@ if __name__ == &#39;__main__&#39;:
   
   <entry>
     <title type="html"><![CDATA[Microcorruption CTF - Part I]]></title>
-    <link href="http://idosch.github.io/blog/2014/04/18/microcorruption-ctf-part-i/"/>
+    <link href="http://idosch.org/blog/2014/04/18/microcorruption-ctf-part-i/"/>
     <updated>2014-04-18T23:29:17+03:00</updated>
-    <id>http://idosch.github.io/blog/2014/04/18/microcorruption-ctf-part-i</id>
+    <id>http://idosch.org/blog/2014/04/18/microcorruption-ctf-part-i</id>
     <content type="html"><![CDATA[<h2>Introduction</h2>
 
 <p><a href="https://microcorruption.com">Microcorruption CTF</a> (or uctf) is a security challenge in which you are given an electronic lock (Lockit all LockIT Pro) based on the <a href="http://en.wikipedia.org/wiki/TI_MSP430">TI MSP430</a> microcontroller and a debugger connected to it. The objective is to find inputs that will unlock the device in order to allow access to your operatives scattered around the world into different warehouses. The device even has his own bogus <a href="https://microcorruption.com/manual.pdf">manual</a> which is a must read.</p>

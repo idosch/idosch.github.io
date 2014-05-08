@@ -1,27 +1,27 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>
     <url>
-        <loc>http://idosch.github.io/blog/2014/04/18/microcorruption-ctf-part-i/</loc>
-        <lastmod>2014-04-20T14:37:39+03:00</lastmod>
+        <loc>http://idosch.org/blog/2014/04/18/microcorruption-ctf-part-i/</loc>
+        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
     </url>
     <url>
-        <loc>http://idosch.github.io/blog/2014/04/21/microcorruption-ctf-part-ii/</loc>
-        <lastmod>2014-05-07T23:20:58+03:00</lastmod>
+        <loc>http://idosch.org/blog/2014/04/21/microcorruption-ctf-part-ii/</loc>
+        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
     </url>
     <url>
-        <loc>http://idosch.github.io/</loc>
-        <lastmod>2014-05-07T23:20:58+03:00</lastmod>
+        <loc>http://idosch.org/</loc>
+        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
     </url>
     <url>
-        <loc>http://idosch.github.io/blog/archives/</loc>
-        <lastmod>2014-05-07T23:20:58+03:00</lastmod>
+        <loc>http://idosch.org/blog/archives/</loc>
+        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
     </url>
     <url>
-        <loc>http://idosch.github.io/robots.txt</loc>
-        <lastmod>2014-04-17T23:45:43+03:00</lastmod>
+        <loc>http://idosch.org/robots.txt</loc>
+        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
     </url>
     <url>
-        <loc>http://idosch.github.io/about/</loc>
-        <lastmod>2014-04-20T13:16:10+03:00</lastmod>
+        <loc>http://idosch.org/about/</loc>
+        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
     </url>
 </urlset>
