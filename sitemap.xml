@@ -2,26 +2,30 @@
 <urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>
     <url>
         <loc>http://idosch.org/blog/2014/04/18/microcorruption-ctf-part-i/</loc>
-        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
+        <lastmod>2014-06-02T18:24:03+03:00</lastmod>
     </url>
     <url>
         <loc>http://idosch.org/blog/2014/04/21/microcorruption-ctf-part-ii/</loc>
-        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
+        <lastmod>2014-06-02T18:24:03+03:00</lastmod>
     </url>
     <url>
-        <loc>http://idosch.org/</loc>
-        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
-    </url>
-    <url>
-        <loc>http://idosch.org/blog/archives/</loc>
-        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
+        <loc>http://idosch.org/blog/2014/06/01/narnia-wargame-writeup/</loc>
+        <lastmod>2014-06-02T18:24:03+03:00</lastmod>
     </url>
     <url>
         <loc>http://idosch.org/robots.txt</loc>
-        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
+        <lastmod>2014-06-02T18:24:03+03:00</lastmod>
+    </url>
+    <url>
+        <loc>http://idosch.org/blog/archives/</loc>
+        <lastmod>2014-06-02T18:24:03+03:00</lastmod>
+    </url>
+    <url>
+        <loc>http://idosch.org/</loc>
+        <lastmod>2014-06-02T18:24:03+03:00</lastmod>
     </url>
     <url>
         <loc>http://idosch.org/about/</loc>
-        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
+        <lastmod>2014-06-02T18:24:03+03:00</lastmod>
     </url>
 </urlset>

