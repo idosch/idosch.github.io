@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>
+    <url>
+        <loc>http://idosch.org/blog/2014/04/18/microcorruption-ctf-part-i/</loc>
+        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
+    </url>
+    <url>
+        <loc>http://idosch.org/blog/2014/04/21/microcorruption-ctf-part-ii/</loc>
+        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
+    </url>
+    <url>
+        <loc>http://idosch.org/</loc>
+        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
+    </url>
+    <url>
+        <loc>http://idosch.org/blog/archives/</loc>
+        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
+    </url>
+    <url>
+        <loc>http://idosch.org/robots.txt</loc>
+        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
+    </url>
+    <url>
+        <loc>http://idosch.org/about/</loc>
+        <lastmod>2014-05-08T22:11:11+03:00</lastmod>
+    </url>
+</urlset>

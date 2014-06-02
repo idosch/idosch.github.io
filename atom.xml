@@ -1,113 +1,24 @@
-<!DOCTYPE html>
-<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
-<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
-<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
-<head>
-  <meta charset="utf-8">
-  <title>idosch</title>
-  <meta name="author" content="Ido Schimmel">
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
 
-  
-  <meta name="description" content="Introduction This is the second post about the microcorruption CTF. For the previous post click here. Level 10: Jakarta &ldquo;Zero bottles of beer &hellip;">
-  
-
-  <!-- http://t.co/dKP3o1e -->
-  <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  
-  <link rel="canonical" href="http://idosch.org">
-  <link href="/favicon.png" rel="icon">
-  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
-  <link href="/atom.xml" rel="alternate" title="idosch" type="application/atom+xml">
-  <script src="/javascripts/modernizr-2.0.js"></script>
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
-  <script src="/javascripts/octopress.js" type="text/javascript"></script>
-  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
-<link href="//fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
-<link href="//fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
-
-  
-  <script type="text/javascript">
-    var _gaq = _gaq || [];
-    _gaq.push(['_setAccount', 'UA-50792080-1']);
-    _gaq.push(['_trackPageview']);
-    _gaq.push(['_setDomainName', 'idosch.org']);
-
-    (function() {
-      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-    })();
-  </script>
-
-
-</head>
-
-<body   >
-  <header role="banner"><hgroup>
-  <h1><a href="/">idosch</a></h1>
-  
-    <h2>Things that interest me.</h2>
-  
-</hgroup>
-
-</header>
-  <nav role="navigation"><ul class="subscription" data-subscription="rss">
-  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
-  
-</ul>
-  
-<form action="https://www.google.com/search" method="get">
-  <fieldset role="search">
-    <input type="hidden" name="q" value="site:idosch.org" />
-    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
-  </fieldset>
-</form>
-  
-<ul class="main-navigation">
-  <li><a href="/">Blog</a></li>
-  <li><a href="/blog/archives">Archives</a></li>
-  <li><a href="/about">About</a></li>
-</ul>
-
-</nav>
-  <div id="main">
-    <div id="content">
-      <div class="blog-index">
-  
-  
-  
-    <article>
-      
-  <header>
+  <title><![CDATA[idosch]]></title>
+  <link href="http://idosch.org/atom.xml" rel="self"/>
+  <link href="http://idosch.org/"/>
+  <updated>2014-05-08T22:12:56+03:00</updated>
+  <id>http://idosch.org/</id>
+  <author>
+    <name><![CDATA[Ido Schimmel]]></name>
     
-      <h1 class="entry-title"><a href="/blog/2014/04/21/microcorruption-ctf-part-ii/">Microcorruption CTF - Part II</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
 
   
-
-
-<time datetime="2014-04-21T22:51:26+03:00" pubdate data-updated="true">Apr 21<span>st</span>, 2014</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h2>Introduction</h2>
+  <entry>
+    <title type="html"><![CDATA[Microcorruption CTF - Part II]]></title>
+    <link href="http://idosch.org/blog/2014/04/21/microcorruption-ctf-part-ii/"/>
+    <updated>2014-04-21T22:51:26+03:00</updated>
+    <id>http://idosch.org/blog/2014/04/21/microcorruption-ctf-part-ii</id>
+    <content type="html"><![CDATA[<h2>Introduction</h2>
 
 <p>This is the second post about the <a href="https://microcorruption.com">microcorruption CTF</a>. For the previous post click <a href="http://idosch.org/blog/2014/04/18/microcorruption-ctf-part-i/">here</a>.</p>
 
@@ -602,42 +513,15 @@ if __name__ == &#39;__main__&#39;:
 <p>This level introduces <a href="http://en.wikipedia.org/wiki/Data_Execution_Prevention">DEP</a>, in which some of the memory pages (<code>0x100</code> bytes segments in our case) are executable and some are writable, but not both. Thus, writing a shellcode to the stack is OK, but it&rsquo;s no executable.</p>
 
 <p>Since the stack is on the boundary between pages <code>0x3f</code> and <code>0x40</code> it&rsquo;s possible to write our shellcode into <code>0x40</code> while it&rsquo;s still writable, but in a way that when <code>login</code> returns it will mark it as executable. The shellcode is very similar to the previous ones, so I&rsquo;ll just write the password here: <code>0x61616161616161616161616161616161be44000000000000400000000c4031800f00324000ffb0121000</code></p>
-</div>
+]]></content>
+  </entry>
   
-  
-
-
-    </article>
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/04/18/microcorruption-ctf-part-i/">Microcorruption CTF - Part I</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-04-18T23:29:17+03:00" pubdate data-updated="true">Apr 18<span>th</span>, 2014</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h2>Introduction</h2>
+  <entry>
+    <title type="html"><![CDATA[Microcorruption CTF - Part I]]></title>
+    <link href="http://idosch.org/blog/2014/04/18/microcorruption-ctf-part-i/"/>
+    <updated>2014-04-18T23:29:17+03:00</updated>
+    <id>http://idosch.org/blog/2014/04/18/microcorruption-ctf-part-i</id>
+    <content type="html"><![CDATA[<h2>Introduction</h2>
 
 <p><a href="https://microcorruption.com">Microcorruption CTF</a> (or uctf) is a security challenge in which you are given an electronic lock (Lockit all LockIT Pro) based on the <a href="http://en.wikipedia.org/wiki/TI_MSP430">TI MSP430</a> microcontroller and a debugger connected to it. The objective is to find inputs that will unlock the device in order to allow access to your operatives scattered around the world into different warehouses. The device even has his own bogus <a href="https://microcorruption.com/manual.pdf">manual</a> which is a must read.</p>
 
@@ -1475,58 +1359,7 @@ if __name__ == &#39;__main__&#39;:
 <p>After absorbing all these information it&rsquo;s pretty clear what to do. We begin by entering a username that will overwrite the password&rsquo;s length boundaries at <code>0x43a2</code> and <code>0x43b5</code> with more appropriate values such as <code>0x1</code> and <code>0xff</code>. We also use the username to change the return address at <code>0x43cc</code> to that of <code>unlock_door</code>. <code>0x616161616161616161616161616161616101ff61616161616161616161616161616161616161616161614a44</code> is a good choice. Next, we enter a password whose sole purpose is to overwrite <code>0x43c6</code> with <code>0x0</code>. Since the username already took care of the password&rsquo;s length we can enter a password longer than 16 chars. <code>0x616161616161616161616161616161616100</code> does the job.</p>
 
 <p>In the next post I&rsquo;ll add my solutions to the next levels.</p>
-</div>
+]]></content>
+  </entry>
   
-  
-
-
-    </article>
-  
-  <div class="pagination">
-    
-    <a href="/blog/archives">Blog Archives</a>
-    
-  </div>
-</div>
-<aside class="sidebar">
-  
-    <section>
-  <h1>Recent Posts</h1>
-  <ul id="recent_posts">
-    
-      <li class="post">
-        <a href="/blog/2014/04/21/microcorruption-ctf-part-ii/">Microcorruption CTF - Part II</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/04/18/microcorruption-ctf-part-i/">Microcorruption CTF - Part I</a>
-      </li>
-    
-  </ul>
-</section>
-
-  
-</aside>
-
-    </div>
-  </div>
-  <footer role="contentinfo"><p>
-  Copyright &copy; 2014 - Ido Schimmel -
-  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
-</p>
-
-</footer>
-  
-
-
-
-
-
-
-
-
-
-
-
-</body>
-</html>
+</feed>
